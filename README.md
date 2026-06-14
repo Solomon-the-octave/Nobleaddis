@@ -367,7 +367,7 @@ Suggested demo flow:
 Video demo link:
 
 ```text
-PASTE VIDEO LINK HERE
+https://drive.google.com/file/d/12gAV8YA6IBqlWE_FarrfHLgEdLgh9__S/view?usp=drive_link
 ```
 
 ## Limitations
