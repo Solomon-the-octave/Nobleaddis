@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model PropertyReport {
+  id                    Int      @id @default(autoincrement())
+  location              String
+  propertyType          String
+  listedPriceUsd        Int
+  sizeSqm               Int
+  bedrooms              Int
+  bathrooms             Int
+  amenitiesCount        Int
+  completenessScore     Float
+  description           String
+  negotiationLow        Int
+  negotiationHigh       Int
+  estimatedValue        Int
+  priceSignal           String
+  priceGapPercent       Float
+  riskLevel             String
+  opportunitySignal     String
+  opportunityNote       String
+  explanation           String
+  pricePerSqm           Int
+  nearbyAveragePrice    Int
+  nearbyAveragePricePerSqm Int
+  createdAt             DateTime @default(now())
+}

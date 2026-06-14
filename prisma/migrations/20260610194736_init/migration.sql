@@ -1,0 +1,26 @@
+-- CreateTable
+CREATE TABLE "PropertyReport" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "location" TEXT NOT NULL,
+    "propertyType" TEXT NOT NULL,
+    "listedPriceUsd" INTEGER NOT NULL,
+    "sizeSqm" INTEGER NOT NULL,
+    "bedrooms" INTEGER NOT NULL,
+    "bathrooms" INTEGER NOT NULL,
+    "amenitiesCount" INTEGER NOT NULL,
+    "completenessScore" REAL NOT NULL,
+    "description" TEXT NOT NULL,
+    "negotiationLow" INTEGER NOT NULL,
+    "negotiationHigh" INTEGER NOT NULL,
+    "estimatedValue" INTEGER NOT NULL,
+    "priceSignal" TEXT NOT NULL,
+    "priceGapPercent" REAL NOT NULL,
+    "riskLevel" TEXT NOT NULL,
+    "opportunitySignal" TEXT NOT NULL,
+    "opportunityNote" TEXT NOT NULL,
+    "explanation" TEXT NOT NULL,
+    "pricePerSqm" INTEGER NOT NULL,
+    "nearbyAveragePrice" INTEGER NOT NULL,
+    "nearbyAveragePricePerSqm" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
