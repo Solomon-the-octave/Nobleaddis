@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
+  BarChart3,
   Building2,
-  ChartNoAxesCombined,
-  ClipboardList,
   FileText,
   Home,
+  SearchCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -16,17 +16,12 @@ const navItems = [
   {
     label: "Evaluate",
     href: "/evaluate",
-    icon: Building2,
+    icon: SearchCheck,
   },
   {
     label: "Insights",
     href: "/insights",
-    icon: ChartNoAxesCombined,
-  },
-  {
-    label: "Admin",
-    href: "/admin",
-    icon: ClipboardList,
+    icon: BarChart3,
   },
   {
     label: "Reports",
@@ -37,49 +32,49 @@ const navItems = [
 
 export default function Navbar() {
   return (
-    <header className="navbar">
-      <div className="navbar-inner">
-        <Link href="/" className="brand-wrap">
-          <div className="brand-mark">
-            <Building2 size={23} strokeWidth={2.4} />
+    <header className="site-navbar">
+      <div className="site-navbar-inner">
+        <Link href="/" className="site-brand" aria-label="Noble Addis home">
+          <div className="site-brand-mark">
+            <Building2 size={22} strokeWidth={2.4} />
           </div>
 
-          <div>
-            <p className="brand-name">Noble Addis</p>
-            <p className="brand-subtitle">Remote property intelligence</p>
+          <div className="site-brand-copy">
+            <span className="site-brand-name">Noble Addis</span>
+            <span className="site-brand-subtitle">Property review platform</span>
           </div>
         </Link>
 
-        <nav className="nav-links">
+        <nav className="site-nav-links" aria-label="Main navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
 
             return (
-              <Link key={item.href} href={item.href} className="nav-link">
-                <Icon size={16} />
-                {item.label}
+              <Link key={item.href} href={item.href} className="site-nav-link">
+                <Icon size={16} strokeWidth={2.2} />
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <Link href="/evaluate" className="nav-cta">
-          Evaluate Listing
+        <Link href="/evaluate" className="site-nav-action">
+          Review listing
         </Link>
       </div>
 
-      <div className="mobile-nav">
+      <nav className="site-mobile-nav" aria-label="Mobile navigation">
         {navItems.map((item) => {
           const Icon = item.icon;
 
           return (
-            <Link key={item.href} href={item.href} className="nav-link">
-              <Icon size={15} />
-              {item.label}
+            <Link key={item.href} href={item.href} className="site-mobile-link">
+              <Icon size={16} strokeWidth={2.2} />
+              <span>{item.label}</span>
             </Link>
           );
         })}
-      </div>
+      </nav>
     </header>
   );
 }

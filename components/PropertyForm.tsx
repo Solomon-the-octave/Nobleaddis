@@ -52,9 +52,9 @@ function formatEtb(value?: number) {
 }
 
 function getStatusLabel(status: PropertyListing["status"]) {
-  if (status === "flagged") return "Flagged";
-  if (status === "needs-review") return "Needs review";
-  return "Verified";
+  if (status === "flagged") return "Needs review";
+  if (status === "needs-review") return "Review required";
+  return "Standard";
 }
 
 function getStatusClass(status: PropertyListing["status"]) {
@@ -200,20 +200,20 @@ export default function PropertyForm() {
       setSaveMessage("Review complete. Report saved.");
     } catch (error) {
       console.error("Evaluation error:", error);
-      setSaveMessage("Something went wrong while evaluating this listing.");
+      setSaveMessage("Unable to complete the review. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
 
-  const messageIsError = saveMessage.includes("Something went wrong");
+  const messageIsError = saveMessage.includes("Unable to complete");
 
   return (
     <section className="review-workspace">
       <div className="review-toolbar">
         <div>
-          <p className="section-kicker">Select listing</p>
-          <h2>Choose a listing to review</h2>
+          <p className="section-kicker">Property review</p>
+          <h2>Select a listing</h2>
         </div>
 
         <div className="dataset-actions">
@@ -222,7 +222,7 @@ export default function PropertyForm() {
             className={isSelected(standardListing) ? "active-demo-button" : ""}
             onClick={() => applyListing(standardListing)}
           >
-            Standard listing
+            Apartment
           </button>
 
           <button
@@ -230,7 +230,7 @@ export default function PropertyForm() {
             className={isSelected(flaggedListing) ? "active-demo-button" : ""}
             onClick={() => applyListing(flaggedListing)}
           >
-            Flagged listing
+            Needs review
           </button>
 
           <button
@@ -238,7 +238,7 @@ export default function PropertyForm() {
             className={isSelected(landListing) ? "active-demo-button" : ""}
             onClick={() => applyListing(landListing)}
           >
-            Land listing
+            Land
           </button>
         </div>
       </div>
@@ -282,8 +282,8 @@ export default function PropertyForm() {
               <strong>{selectedListing.sourcePlatform}</strong>
 
               <p>
-                Public listing information used for early review. Private seller
-                details are excluded.
+                Listing details are used for property review. Private seller
+                contact information is not displayed.
               </p>
 
               {selectedListing.listingUrl && (
@@ -302,8 +302,8 @@ export default function PropertyForm() {
         <form className="review-form-panel" onSubmit={handleSubmit}>
           <div className="form-panel-header">
             <div>
-              <h3>Listing details</h3>
-              <p>Adjust the fields before running the review.</p>
+              <h3>Property details</h3>
+              <p>Review the listing information before generating the assessment.</p>
             </div>
 
             <Search size={22} />
@@ -428,7 +428,7 @@ export default function PropertyForm() {
               <FileText size={18} />
               <span>
                 {matchingListings.length} similar listings found in this
-                location/type group.
+                location and property type.
               </span>
             </div>
           )}
@@ -445,7 +445,7 @@ export default function PropertyForm() {
               </>
             ) : (
               <>
-                Run listing review
+                Generate review
                 <CheckCircle size={18} />
               </>
             )}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
+import { getCurrentUser } from "../../../lib/auth";
 
 function safeNumber(value: unknown, fallback = 0) {
   const numberValue = Number(value);
@@ -21,7 +22,21 @@ function safeString(value: unknown, fallback = "") {
 
 export async function GET() {
   try {
-    const reports = await prisma.propertyReport.findMany({
+    const user = await getCurrentUser();
+
+    const reports = await prisma.evaluationReport.findMany({
+      where: user?.role === "BUYER" ? { userId: user.id } : undefined,
+      include: {
+        listing: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -32,7 +47,7 @@ export async function GET() {
     console.error("Failed to fetch reports:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch reports." },
+      { message: "Failed to fetch reports." },
       { status: 500 }
     );
   }
@@ -40,13 +55,17 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
     const body = await request.json();
 
     const listedPriceUsd = safeNumber(body.listedPriceUsd);
     const sizeSqm = safeNumber(body.sizeSqm, 100);
 
-    const report = await prisma.propertyReport.create({
+    const report = await prisma.evaluationReport.create({
       data: {
+        userId: user?.id,
+        listingId: body.listingId ? safeNumber(body.listingId) : undefined,
+
         location: safeString(body.location, "Addis Ababa"),
         propertyType: safeString(body.propertyType, "Property"),
         listedPriceUsd,
@@ -62,22 +81,27 @@ export async function POST(request: Request) {
         estimatedValue: safeNumber(body.estimatedValue),
         priceSignal: safeString(body.priceSignal, "within-range"),
         priceGapPercent: safeNumber(body.priceGapPercent),
-        riskLevel: safeString(body.riskLevel, "normal"),
+        riskLevel: safeString(body.riskLevel, "standard"),
         opportunitySignal: safeString(body.opportunitySignal, "Standard review"),
         opportunityNote: safeString(
           body.opportunityNote,
-          "Review the listing before moving forward."
+          "Review listing details before moving forward."
         ),
         explanation: safeString(
           body.explanation,
-          "This review is based on available listing fields."
+          "This assessment is based on available listing fields."
         ),
         pricePerSqm: safeNumber(
           body.pricePerSqm,
           sizeSqm > 0 ? Math.round(listedPriceUsd / sizeSqm) : 0
         ),
         nearbyAveragePrice: safeNumber(body.nearbyAveragePrice),
-        nearbyAveragePricePerSqm: safeNumber(body.nearbyAveragePricePerSqm),
+        nearbyAveragePricePerSqm: safeNumber(
+          body.nearbyAveragePricePerSqm
+        ),
+        modelSource: body.modelSource
+          ? safeString(body.modelSource)
+          : undefined,
       },
     });
 
@@ -86,7 +110,7 @@ export async function POST(request: Request) {
     console.error("Failed to save report:", error);
 
     return NextResponse.json(
-      { error: "Failed to save report." },
+      { message: "Failed to save report." },
       { status: 500 }
     );
   }

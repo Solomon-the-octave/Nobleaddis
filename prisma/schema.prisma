@@ -7,28 +7,174 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model PropertyReport {
-  id                    Int      @id @default(autoincrement())
-  location              String
-  propertyType          String
-  listedPriceUsd        Int
-  sizeSqm               Int
-  bedrooms              Int
-  bathrooms             Int
-  amenitiesCount        Int
-  completenessScore     Float
-  description           String
-  negotiationLow        Int
-  negotiationHigh       Int
-  estimatedValue        Int
-  priceSignal           String
-  priceGapPercent       Float
-  riskLevel             String
-  opportunitySignal     String
-  opportunityNote       String
-  explanation           String
-  pricePerSqm           Int
-  nearbyAveragePrice    Int
+enum UserRole {
+  BUYER
+  ADMIN
+}
+
+enum AdminDepartment {
+  SUPER_ADMIN
+  LISTINGS
+  VERIFICATION
+  FINANCE
+  SUPPORT
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  NEEDS_REVIEW
+  REJECTED
+  ARCHIVED
+}
+
+enum ReviewLevel {
+  STANDARD
+  NEEDS_REVIEW
+  HIGH_REVIEW
+}
+
+enum ReservationStatus {
+  PENDING
+  RECEIPT_UPLOADED
+  PAYMENT_VERIFIED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  RECEIPT_UPLOADED
+  VERIFIED
+  REJECTED
+  REFUNDED
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            UserRole         @default(BUYER)
+  adminDepartment AdminDepartment?
+  phone           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  reports       EvaluationReport[]
+  savedListings SavedListing[]
+  reservations  ReservationRequest[]
+  payments      Payment[]
+}
+
+model PropertyListing {
+  id                Int           @id @default(autoincrement())
+  title             String
+  location          String
+  propertyType      String
+  listedPriceUsd    Int
+  listedPriceEtb    Int?
+  sizeSqm           Int
+  bedrooms          Int
+  bathrooms         Int
+  amenitiesCount    Int           @default(0)
+  completenessScore Float         @default(0.7)
+  description       String
+  imageUrl          String?
+  listingUrl        String?
+  sourcePlatform    String        @default("Noble Addis")
+  latitude          Float?
+  longitude         Float?
+  status            ListingStatus @default(PENDING)
+  reviewLevel       ReviewLevel   @default(STANDARD)
+  adminNote         String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  reports      EvaluationReport[]
+  savedByUsers SavedListing[]
+  reservations ReservationRequest[]
+}
+
+model EvaluationReport {
+  id                       Int      @id @default(autoincrement())
+  userId                   Int?
+  listingId                Int?
+  location                 String
+  propertyType             String
+  listedPriceUsd           Int
+  sizeSqm                  Int
+  bedrooms                 Int
+  bathrooms                Int
+  amenitiesCount           Int
+  completenessScore        Float
+  description              String
+  negotiationLow           Int
+  negotiationHigh          Int
+  estimatedValue           Int
+  priceSignal              String
+  priceGapPercent          Float
+  riskLevel                String
+  opportunitySignal        String
+  opportunityNote          String
+  explanation              String
+  pricePerSqm              Int
+  nearbyAveragePrice       Int
   nearbyAveragePricePerSqm Int
-  createdAt             DateTime @default(now())
+  modelSource              String?
+  createdAt                DateTime @default(now())
+
+  user    User?            @relation(fields: [userId], references: [id])
+  listing PropertyListing? @relation(fields: [listingId], references: [id])
+}
+
+model SavedListing {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  listingId Int
+  createdAt DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id])
+  listing PropertyListing @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId])
+}
+
+model ReservationRequest {
+  id            Int               @id @default(autoincrement())
+  userId        Int
+  listingId     Int
+  preferredDate DateTime?
+  note          String?
+  receiptUrl    String?
+  contactName   String?
+  contactPhone  String?
+  status        ReservationStatus @default(PENDING)
+  amountUsd     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id])
+  listing PropertyListing @relation(fields: [listingId], references: [id])
+  payment Payment?
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  reservationId Int?          @unique
+  amountUsd     Int
+  currency      String        @default("USD")
+  status        PaymentStatus @default(PENDING)
+  provider      String        @default("Manual")
+  receiptUrl    String?
+  reference     String?
+  financeNote   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id])
+  reservation ReservationRequest? @relation(fields: [reservationId], references: [id])
 }

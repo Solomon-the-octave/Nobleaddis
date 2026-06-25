@@ -2,10 +2,33 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
+  ClipboardCheck,
   FileText,
   MapPin,
-  ShieldCheck,
 } from "lucide-react";
+
+const checks = [
+  {
+    title: "Price review",
+    text: "Compare the listed price against similar property records.",
+    icon: BarChart3,
+  },
+  {
+    title: "Listing checks",
+    text: "Review missing details, unusual signals, and buyer caution points.",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "Location context",
+    text: "View the listing area and basic location information.",
+    icon: MapPin,
+  },
+  {
+    title: "Saved reports",
+    text: "Keep reviewed listings for comparison and follow-up.",
+    icon: FileText,
+  },
+];
 
 export default function HomePage() {
   return (
@@ -14,30 +37,29 @@ export default function HomePage() {
         <div className="clean-hero-copy">
           <p className="small-label">Noble Addis</p>
 
-          <h1>Check property listings before negotiation.</h1>
+          <h1>Review property listings before you move forward.</h1>
 
           <p>
-            A simple review tool for comparing listing prices, checking basic
-            risk signals, viewing location context, and saving property review
-            reports.
+            Noble Addis helps buyers check price signals, listing details,
+            location context, and review history before negotiation.
           </p>
 
           <div className="clean-actions">
             <Link href="/evaluate" className="clean-primary-button">
-              Evaluate a listing
+              Review a listing
               <ArrowRight size={18} />
             </Link>
 
             <Link href="/insights" className="clean-secondary-button">
-              View insights
+              View market insights
             </Link>
           </div>
         </div>
 
         <div className="clean-summary-card">
           <div className="summary-card-header">
-            <span>Sample review</span>
-            <strong>Apartment in Bole</strong>
+            <span>Listing review</span>
+            <strong>Bole apartment</strong>
           </div>
 
           <div className="summary-row">
@@ -46,55 +68,43 @@ export default function HomePage() {
           </div>
 
           <div className="summary-row">
-            <span>Review result</span>
+            <span>Review status</span>
             <strong>Needs review</strong>
           </div>
 
           <div className="summary-row">
-            <span>Suggested action</span>
-            <strong>Verify documents</strong>
+            <span>Next step</span>
+            <strong>Verify details</strong>
           </div>
 
           <p>
-            This review is only an early screening step. Buyers still need site
-            visits, document checks, and professional verification.
+            Each review gives the buyer a practical starting point before
+            contacting an agent or making a site visit.
           </p>
         </div>
       </section>
 
       <section className="clean-section">
         <div className="clean-section-title">
-          <h2>What the platform checks</h2>
+          <h2>Core checks</h2>
           <p>
-            The MVP focuses on the main questions a buyer should ask before
-            taking the next step.
+            The platform focuses on the information buyers need before taking
+            the next step.
           </p>
         </div>
 
         <div className="clean-feature-grid">
-          <div className="clean-feature-card">
-            <BarChart3 size={22} />
-            <h3>Price comparison</h3>
-            <p>Compares the listing price with similar property records.</p>
-          </div>
+          {checks.map((item) => {
+            const Icon = item.icon;
 
-          <div className="clean-feature-card">
-            <ShieldCheck size={22} />
-            <h3>Risk screening</h3>
-            <p>Highlights listings that may need extra review.</p>
-          </div>
-
-          <div className="clean-feature-card">
-            <MapPin size={22} />
-            <h3>Location context</h3>
-            <p>Shows the approximate listing area using a map view.</p>
-          </div>
-
-          <div className="clean-feature-card">
-            <FileText size={22} />
-            <h3>Saved reports</h3>
-            <p>Keeps each review available for follow-up.</p>
-          </div>
+            return (
+              <div key={item.title} className="clean-feature-card">
+                <Icon size={22} />
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
     </main>
