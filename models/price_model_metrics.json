@@ -1,0 +1,25 @@
+{
+  "rows_used": 83696,
+  "training_rows": 66956,
+  "testing_rows": 16740,
+  "features": [
+    "size_sqm",
+    "bedrooms",
+    "bathrooms",
+    "image_count",
+    "latitude",
+    "longitude",
+    "floor",
+    "description_length",
+    "completeness_score",
+    "property_type",
+    "listing_type",
+    "place_name",
+    "condition",
+    "furnishing"
+  ],
+  "mae": 889867.1844229777,
+  "mae_percent_of_median_price": 41.03276461505955,
+  "r2_score": 0.739749260156517,
+  "median_actual_price": 2168674.69879518
+}

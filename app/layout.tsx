@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 export const metadata: Metadata = {
   title: "Noble Addis",
   description:
-    "A property intelligence platform for remote real estate evaluation in Addis Ababa.",
+    "A real estate platform helping buyers review property listings in Addis Ababa.",
 };
 
 export default function RootLayout({

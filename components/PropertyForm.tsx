@@ -1,24 +1,40 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import {
   AlertCircle,
   CheckCircle,
-  FileText,
+  ImageIcon,
   Loader2,
   MapPin,
   Search,
+  SlidersHorizontal,
+  XCircle,
 } from "lucide-react";
-import {
-  locations,
-  propertyTypes,
-  sampleListings,
-  PropertyListing,
-} from "../lib/sampleData";
-import { EvaluationResult } from "../lib/prediction";
+import { EvaluationResult, formatMoney } from "../lib/prediction";
 import ResultCards from "./ResultCards";
 import MapView from "./MapView";
-import DevelopmentPreview from "./DevelopmentPreview";
+
+type ListingRecord = {
+  id: string;
+  title: string;
+  area: string;
+  location: string;
+  propertyType: string;
+  listedPriceUsd: number;
+  sizeSqm: number;
+  bedrooms: number;
+  bathrooms: number;
+  amenitiesCount: number;
+  descriptionLength?: number;
+  completenessScore: number;
+  pricePerSqm?: number;
+  riskLabel?: string;
+  description: string;
+  imageUrl?: string;
+  sourceUrl?: string;
+};
 
 type FormState = {
   location: string;
@@ -32,142 +48,229 @@ type FormState = {
   description: string;
 };
 
-type SavedReport = FormState &
-  EvaluationResult & {
-    id: string;
-    title: string;
-    imageUrl: string;
-    sourcePlatform: string;
-    listingUrl: string;
-    createdAt: string;
+const emptyForm: FormState = {
+  location: "",
+  propertyType: "Apartment",
+  listedPriceUsd: 0,
+  sizeSqm: 0,
+  bedrooms: 0,
+  bathrooms: 0,
+  amenitiesCount: 0,
+  completenessScore: 0.7,
+  description: "",
+};
+
+function cleanText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function getRiskClass(value?: string) {
+  const cleanValue = value?.toLowerCase() || "";
+
+  if (cleanValue.includes("suspicious") || cleanValue.includes("flagged")) {
+    return "model-pill danger";
+  }
+
+  if (cleanValue.includes("medium") || cleanValue.includes("review")) {
+    return "model-pill warning";
+  }
+
+  return "model-pill success";
+}
+
+function getRiskLabel(value?: string) {
+  if (!value) return "normal";
+
+  if (value === "medium-risk") return "needs review";
+
+  return value;
+}
+
+function listingToForm(listing: ListingRecord): FormState {
+  return {
+    location: listing.location,
+    propertyType: listing.propertyType,
+    listedPriceUsd: listing.listedPriceUsd,
+    sizeSqm: listing.sizeSqm,
+    bedrooms: listing.bedrooms,
+    bathrooms: listing.bathrooms,
+    amenitiesCount: listing.amenitiesCount,
+    completenessScore: listing.completenessScore,
+    description: listing.description,
   };
-
-function formatUsd(value: number) {
-  return `$${Math.round(value).toLocaleString("en-US")}`;
 }
 
-function formatEtb(value?: number) {
-  if (!value || Number.isNaN(value)) return "ETB not available";
-  return `ETB ${Math.round(value).toLocaleString("en-US")}`;
-}
+function findMatchingListing(form: FormState, listings: ListingRecord[]) {
+  const enteredLocation = cleanText(form.location);
+  const enteredType = cleanText(form.propertyType);
 
-function getStatusLabel(status: PropertyListing["status"]) {
-  if (status === "flagged") return "Needs review";
-  if (status === "needs-review") return "Review required";
-  return "Standard";
-}
+  return (
+    listings.find((listing) => {
+      const listingArea = cleanText(listing.area);
+      const listingLocation = cleanText(listing.location);
+      const listingType = cleanText(listing.propertyType);
 
-function getStatusClass(status: PropertyListing["status"]) {
-  if (status === "flagged") return "listing-status flagged";
-  if (status === "needs-review") return "listing-status review";
-  return "listing-status verified";
-}
+      const locationMatches =
+        enteredLocation.includes(listingArea) ||
+        enteredLocation.includes(listingLocation) ||
+        listingLocation.includes(enteredLocation);
 
-function saveReportLocally(report: SavedReport) {
-  const savedReports = localStorage.getItem("noble_addis_reports");
-  const reports: SavedReport[] = savedReports ? JSON.parse(savedReports) : [];
+      const typeMatches = enteredType === listingType;
+      const bedroomsMatch = Number(form.bedrooms) === listing.bedrooms;
+      const bathroomsMatch = Number(form.bathrooms) === listing.bathrooms;
+      const sizeMatches = Math.abs(Number(form.sizeSqm) - listing.sizeSqm) <= 15;
 
-  localStorage.setItem(
-    "noble_addis_reports",
-    JSON.stringify([report, ...reports])
+      return (
+        locationMatches &&
+        typeMatches &&
+        bedroomsMatch &&
+        bathroomsMatch &&
+        sizeMatches
+      );
+    }) || null
   );
 }
 
-export default function PropertyForm() {
-  const standardListing =
-    sampleListings.find((listing) => listing.status === "verified") ??
-    sampleListings[0];
-
-  const flaggedListing =
-    sampleListings.find(
-      (listing) =>
-        listing.status === "flagged" || listing.riskLabel === "suspicious"
-    ) ?? sampleListings[1];
-
-  const landListing =
-    sampleListings.find(
-      (listing) => listing.propertyType.toLowerCase() === "land"
-    ) ?? sampleListings[2];
-
-  const [selectedListing, setSelectedListing] =
-    useState<PropertyListing>(standardListing);
-
-  const [form, setForm] = useState<FormState>({
-    location: standardListing.location,
-    propertyType: standardListing.propertyType,
-    listedPriceUsd: standardListing.listedPriceUsd,
-    sizeSqm: standardListing.sizeSqm,
-    bedrooms: standardListing.bedrooms,
-    bathrooms: standardListing.bathrooms,
-    amenitiesCount: standardListing.amenitiesCount,
-    completenessScore: standardListing.completenessScore,
-    description: standardListing.description,
+async function saveReportToDatabase(
+  form: FormState,
+  result: EvaluationResult
+) {
+  const response = await fetch("/api/reports", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...form,
+      ...result,
+    }),
   });
 
-  const [result, setResult] = useState<EvaluationResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
+  const data = await response.json();
 
-  const matchingListings = useMemo(() => {
-    return sampleListings.filter(
-      (listing) =>
-        listing.location === form.location &&
-        listing.propertyType === form.propertyType
-    );
-  }, [form.location, form.propertyType]);
-
-  function applyListing(listing: PropertyListing) {
-    setSelectedListing(listing);
-
-    setForm({
-      location: listing.location,
-      propertyType: listing.propertyType,
-      listedPriceUsd: listing.listedPriceUsd,
-      sizeSqm: listing.sizeSqm,
-      bedrooms: listing.bedrooms,
-      bathrooms: listing.bathrooms,
-      amenitiesCount: listing.amenitiesCount,
-      completenessScore: listing.completenessScore,
-      description: listing.description,
-    });
-
-    setResult(null);
-    setSaveMessage("");
+  if (!response.ok) {
+    throw new Error(data.message || "Report could not be saved.");
   }
 
-  function isSelected(listing: PropertyListing) {
-    return selectedListing.id === listing.id;
+  return data.report;
+}
+
+function getLocationCoordinates(location: string) {
+  const cleanLocation = location.toLowerCase();
+
+  if (cleanLocation.includes("bole")) {
+    return { latitude: 8.9806, longitude: 38.7578 };
+  }
+
+  if (cleanLocation.includes("cmc")) {
+    return { latitude: 9.0206, longitude: 38.8462 };
+  }
+
+  if (cleanLocation.includes("ayat")) {
+    return { latitude: 9.0487, longitude: 38.8903 };
+  }
+
+  if (cleanLocation.includes("summit")) {
+    return { latitude: 9.0564, longitude: 38.8725 };
+  }
+
+  if (cleanLocation.includes("gerji")) {
+    return { latitude: 9.0128, longitude: 38.8354 };
+  }
+
+  if (cleanLocation.includes("saris")) {
+    return { latitude: 8.9242, longitude: 38.7469 };
+  }
+
+  if (cleanLocation.includes("kality")) {
+    return { latitude: 8.9096, longitude: 38.7737 };
+  }
+
+  if (cleanLocation.includes("megenagna")) {
+    return { latitude: 9.0201, longitude: 38.8028 };
+  }
+
+  if (cleanLocation.includes("piassa")) {
+    return { latitude: 9.0373, longitude: 38.7524 };
+  }
+
+  return { latitude: 9.03, longitude: 38.74 };
+}
+
+export default function PropertyForm() {
+  const [listings, setListings] = useState<ListingRecord[]>([]);
+  const [selectedListing, setSelectedListing] =
+    useState<ListingRecord | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [result, setResult] = useState<EvaluationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
+  const [pageMessage, setPageMessage] = useState("");
+
+  useEffect(() => {
+    async function loadListings() {
+      try {
+        const response = await fetch("/api/listings");
+
+        if (!response.ok) {
+          throw new Error("Could not load listings.");
+        }
+
+        const data = await response.json();
+        const loadedListings: ListingRecord[] = data.listings || [];
+
+        setListings(loadedListings);
+
+        if (loadedListings.length > 0) {
+          setSelectedListing(loadedListings[0]);
+          setForm(listingToForm(loadedListings[0]));
+        }
+      } catch (error) {
+        console.error("Listing load error:", error);
+        setPageMessage("Unable to load available listing records.");
+      } finally {
+        setIsLoadingListings(false);
+      }
+    }
+
+    loadListings();
+  }, []);
+
+  const matchedListing = findMatchingListing(form, listings);
+  const isAvailable = Boolean(matchedListing);
+  const coordinates = getLocationCoordinates(
+    matchedListing ? matchedListing.location : form.location
+  );
+
+  function applyListing(listing: ListingRecord) {
+    setSelectedListing(listing);
+    setForm(listingToForm(listing));
+    setResult(null);
+    setPageMessage("");
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    const updatedForm = {
-      ...form,
+    setForm((current) => ({
+      ...current,
       [key]: value,
-    };
-
-    setForm(updatedForm);
-
-    const exactMatch = sampleListings.find(
-      (listing) =>
-        listing.location === updatedForm.location &&
-        listing.propertyType === updatedForm.propertyType &&
-        Math.round(listing.listedPriceUsd) ===
-          Math.round(updatedForm.listedPriceUsd)
-    );
-
-    if (exactMatch) {
-      setSelectedListing(exactMatch);
-    }
+    }));
 
     setResult(null);
-    setSaveMessage("");
+    setPageMessage("");
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!matchedListing) {
+      setPageMessage(
+        "This property is not available in the current Noble Addis records."
+      );
+      return;
+    }
+
     setIsLoading(true);
-    setSaveMessage("");
+    setPageMessage("");
 
     try {
       const response = await fetch("/api/evaluate", {
@@ -178,152 +281,231 @@ export default function PropertyForm() {
         body: JSON.stringify(form),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to evaluate listing.");
+        throw new Error(data.error || "Failed to review listing.");
       }
 
-      const data: EvaluationResult = await response.json();
+      const reviewResult = data as EvaluationResult;
 
-      setResult(data);
+      setResult(reviewResult);
 
-      saveReportLocally({
-        id: crypto.randomUUID(),
-        title: selectedListing.title,
-        imageUrl: selectedListing.imageUrl,
-        sourcePlatform: selectedListing.sourcePlatform,
-        listingUrl: selectedListing.listingUrl,
-        createdAt: new Date().toISOString(),
-        ...form,
-        ...data,
-      });
-
-      setSaveMessage("Review complete. Report saved.");
+      try {
+        await saveReportToDatabase(form, reviewResult);
+        setPageMessage("Review complete. Saved to your reports.");
+      } catch (saveError) {
+        console.error("Report save error:", saveError);
+        setPageMessage(
+          "Review complete, but the report could not be saved to the database."
+        );
+      }
     } catch (error) {
-      console.error("Evaluation error:", error);
-      setSaveMessage("Unable to complete the review. Please try again.");
+      console.error("Review error:", error);
+      setPageMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to complete the review. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   }
 
-  const messageIsError = saveMessage.includes("Unable to complete");
+  const messageIsError =
+    pageMessage.includes("Unable") ||
+    pageMessage.includes("not available") ||
+    pageMessage.includes("Failed") ||
+    pageMessage.includes("Could not") ||
+    pageMessage.includes("could not");
 
   return (
-    <section className="review-workspace">
-      <div className="review-toolbar">
+    <section className="property-review-shell">
+      <div className="property-review-hero">
         <div>
           <p className="section-kicker">Property review</p>
-          <h2>Select a listing</h2>
+          <h2>Check listing availability</h2>
+          <p>
+            Enter the property details to check whether the listing exists in
+            the current Noble Addis records. If it is available, the platform
+            prepares a buyer review with price guidance and next steps.
+          </p>
         </div>
 
-        <div className="dataset-actions">
-          <button
-            type="button"
-            className={isSelected(standardListing) ? "active-demo-button" : ""}
-            onClick={() => applyListing(standardListing)}
-          >
-            Apartment
-          </button>
-
-          <button
-            type="button"
-            className={isSelected(flaggedListing) ? "active-demo-button" : ""}
-            onClick={() => applyListing(flaggedListing)}
-          >
-            Needs review
-          </button>
-
-          <button
-            type="button"
-            className={isSelected(landListing) ? "active-demo-button" : ""}
-            onClick={() => applyListing(landListing)}
-          >
-            Land
-          </button>
+        <div className="property-review-hero-stat">
+          <span>Available records</span>
+          <strong>{isLoadingListings ? "..." : listings.length}</strong>
         </div>
       </div>
 
-      <div className="review-grid">
-        <aside className="selected-listing-panel">
-          <div className="selected-image-wrap">
-            <img
-              src={selectedListing.imageUrl}
-              alt={selectedListing.title}
-              className="selected-listing-image"
-            />
-
-            <span className={getStatusClass(selectedListing.status)}>
-              {getStatusLabel(selectedListing.status)}
-            </span>
+      <div className="property-review-grid">
+        <aside className="rental-record-panel">
+          <div className="panel-heading">
+            <p className="section-kicker">Records</p>
+            <h3>Available listings</h3>
           </div>
 
-          <div className="selected-listing-body">
-            <h3>{selectedListing.title}</h3>
+          {isAvailable && matchedListing ? (
+            matchedListing.imageUrl ? (
+              <div className="selected-property-photo">
+                <img src={matchedListing.imageUrl} alt={matchedListing.title} />
 
-            <div className="selected-location">
-              <MapPin size={16} />
-              <span>{selectedListing.location}</span>
-            </div>
-
-            <div className="selected-price-row">
-              <div>
-                <small>Listed price</small>
-                <strong>{formatUsd(selectedListing.listedPriceUsd)}</strong>
+                <div className="selected-property-photo-content">
+                  <span>Matched property</span>
+                  <strong>{matchedListing.title}</strong>
+                  <p>{matchedListing.description}</p>
+                </div>
               </div>
-
-              <div>
-                <small>Local price</small>
-                <strong>{formatEtb(selectedListing.listedPriceEtb)}</strong>
+            ) : (
+              <div className="property-photo-placeholder">
+                <div>
+                  <ImageIcon size={36} />
+                  <h4>Photo not added yet</h4>
+                  <p>
+                    This listing is available, but no property image has been
+                    attached yet. Once listing photos are added, they will appear
+                    here.
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="source-box">
-              <small>Source</small>
-              <strong>{selectedListing.sourcePlatform}</strong>
-
+            )
+          ) : (
+            <div className="not-available-photo-card">
+              <ImageIcon size={34} />
+              <h4>No matching property found</h4>
               <p>
-                Listing details are used for property review. Private seller
-                contact information is not displayed.
+                The details entered do not match a listing currently stored in
+                Noble Addis.
               </p>
-
-              {selectedListing.listingUrl && (
-                <a
-                  href={selectedListing.listingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  View original listing
-                </a>
-              )}
             </div>
+          )}
+
+          <div className="rental-record-list">
+            {isLoadingListings ? (
+              <div className="not-available-photo-card">
+                <Loader2 className="spin-icon" size={28} />
+                <h4>Loading listings</h4>
+                <p>Checking the current Noble Addis records...</p>
+              </div>
+            ) : listings.length === 0 ? (
+              <div className="not-available-photo-card">
+                <XCircle size={34} />
+                <h4>No listings loaded</h4>
+                <p>
+                  The listing records could not be loaded. Check the listings
+                  API or data file.
+                </p>
+              </div>
+            ) : (
+              listings.map((listing) => (
+                <button
+                  type="button"
+                  key={listing.id}
+                  className={
+                    selectedListing?.id === listing.id
+                      ? "rental-record-card active"
+                      : "rental-record-card"
+                  }
+                  onClick={() => applyListing(listing)}
+                >
+                  <div className="rental-record-main">
+                    <span>{listing.area}</span>
+                    <strong>{listing.title}</strong>
+                    <small>
+                      {listing.bedrooms} bed · {listing.bathrooms} bath ·{" "}
+                      {listing.sizeSqm} sqm
+                    </small>
+                  </div>
+
+                  <div className="rental-record-price">
+                    <strong>{formatMoney(listing.listedPriceUsd)}</strong>
+                    <span>listed price</span>
+                  </div>
+
+                  <div className={getRiskClass(listing.riskLabel)}>
+                    {getRiskLabel(listing.riskLabel)}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </aside>
 
-        <form className="review-form-panel" onSubmit={handleSubmit}>
+        <form className="rental-form-panel" onSubmit={handleSubmit}>
           <div className="form-panel-header">
             <div>
-              <h3>Property details</h3>
-              <p>Review the listing information before generating the assessment.</p>
+              <p className="section-kicker">Search criteria</p>
+              <h3>Listing details</h3>
+              <span>
+                Fill in the property details to check whether the listing is
+                available in the current records.
+              </span>
             </div>
 
             <Search size={22} />
           </div>
 
+          <div
+            className={
+              isAvailable
+                ? "availability-card available"
+                : "availability-card unavailable"
+            }
+          >
+            <div>
+              <span>Availability status</span>
+
+              {isAvailable && matchedListing ? (
+                <>
+                  <strong>Available</strong>
+                  <p>
+                    A matching record was found for {matchedListing.area}. You
+                    can generate a buyer review for this listing.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <strong>Not available</strong>
+                  <p>
+                    No matching record was found. Check the area, property type,
+                    bedroom count, bathroom count, and size.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {isAvailable ? <CheckCircle size={28} /> : <XCircle size={28} />}
+          </div>
+
+          {isAvailable && matchedListing && (
+            <div className="selected-rental-summary">
+              <div>
+                <span>Matched listing</span>
+                <strong>{matchedListing.title}</strong>
+              </div>
+
+              <div>
+                <span>Listed price</span>
+                <strong>{formatMoney(matchedListing.listedPriceUsd)}</strong>
+              </div>
+
+              <div>
+                <span>Listing status</span>
+                <strong>{getRiskLabel(matchedListing.riskLabel)}</strong>
+              </div>
+            </div>
+          )}
+
           <div className="input-grid">
             <label>
-              Location
-              <select
+              Area / location
+              <input
                 value={form.location}
+                placeholder="Example: Bole"
                 onChange={(event) =>
                   updateField("location", event.target.value)
                 }
-              >
-                {locations.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label>
@@ -334,16 +516,18 @@ export default function PropertyForm() {
                   updateField("propertyType", event.target.value)
                 }
               >
-                {propertyTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
+                <option value="Apartment">Apartment</option>
+                <option value="House">House</option>
+                <option value="Condo">Condo</option>
+                <option value="Villa">Villa</option>
+                <option value="Warehouse">Warehouse</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Studio">Studio</option>
               </select>
             </label>
 
             <label>
-              Listed price in USD
+              Listed price
               <input
                 type="number"
                 value={form.listedPriceUsd}
@@ -387,7 +571,7 @@ export default function PropertyForm() {
             </label>
 
             <label>
-              Amenities count
+              Amenities listed
               <input
                 type="number"
                 value={form.amenitiesCount}
@@ -398,7 +582,7 @@ export default function PropertyForm() {
             </label>
 
             <label>
-              Completeness score
+              Listing completeness
               <input
                 type="number"
                 min="0"
@@ -423,35 +607,30 @@ export default function PropertyForm() {
             />
           </label>
 
-          {matchingListings.length > 1 && (
-            <div className="matching-listing-note">
-              <FileText size={18} />
-              <span>
-                {matchingListings.length} similar listings found in this
-                location and property type.
-              </span>
-            </div>
-          )}
-
           <button
             className="submit-review-button"
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isLoadingListings || !isAvailable}
           >
             {isLoading ? (
               <>
                 <Loader2 className="spin-icon" size={18} />
-                Running review...
+                Reviewing listing...
               </>
-            ) : (
+            ) : isAvailable ? (
               <>
                 Generate review
                 <CheckCircle size={18} />
               </>
+            ) : (
+              <>
+                Listing not available
+                <XCircle size={18} />
+              </>
             )}
           </button>
 
-          {saveMessage && (
+          {pageMessage && (
             <div
               className={
                 messageIsError ? "review-message error" : "review-message"
@@ -463,31 +642,47 @@ export default function PropertyForm() {
                 <CheckCircle size={18} />
               )}
 
-              <span>{saveMessage}</span>
+              <span>{pageMessage}</span>
             </div>
           )}
         </form>
       </div>
 
-      {result && (
+      {result && matchedListing && (
         <div className="review-results-stack">
           <ResultCards result={result} />
 
           <div className="review-lower-grid">
             <MapView
-              latitude={selectedListing.latitude}
-              longitude={selectedListing.longitude}
-              location={selectedListing.location}
+              latitude={coordinates.latitude}
+              longitude={coordinates.longitude}
+              location={matchedListing.location}
             />
 
-            <DevelopmentPreview
-              propertyType={form.propertyType}
-              sizeSqm={form.sizeSqm}
-              bedrooms={form.bedrooms}
-              bathrooms={form.bathrooms}
-              location={form.location}
-              imageUrl={selectedListing.imageUrl}
-            />
+            <div className="property-review-note">
+              <MapPin size={22} />
+              <div>
+                <h3>Location note</h3>
+                <p>
+                  The map gives an area reference only. Buyers should confirm
+                  the exact address, access road, ownership documents, and
+                  viewing arrangements before making any payment.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="property-review-note">
+            <SlidersHorizontal size={22} />
+            <div>
+              <h3>What affects the review?</h3>
+              <p>
+                The review changes when the listed price, property size,
+                bedrooms, bathrooms, amenities, and listing completeness are
+                adjusted. This helps test fair listings, overpriced listings,
+                low-price listings, and incomplete listings.
+              </p>
+            </div>
           </div>
         </div>
       )}

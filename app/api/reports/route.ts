@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { getCurrentUser } from "../../../lib/auth";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function safeNumber(value: unknown, fallback = 0) {
   const numberValue = Number(value);
 
-  if (Number.isNaN(numberValue)) {
+  if (!Number.isFinite(numberValue)) {
     return fallback;
   }
 
@@ -13,11 +16,13 @@ function safeNumber(value: unknown, fallback = 0) {
 }
 
 function safeString(value: unknown, fallback = "") {
-  if (typeof value !== "string") {
+  const stringValue = String(value ?? "").trim();
+
+  if (!stringValue) {
     return fallback;
   }
 
-  return value;
+  return stringValue;
 }
 
 export async function GET() {
@@ -42,12 +47,15 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(reports);
+    return NextResponse.json({ reports });
   } catch (error) {
     console.error("Failed to fetch reports:", error);
 
     return NextResponse.json(
-      { message: "Failed to fetch reports." },
+      {
+        reports: [],
+        message: "Noble Addis could not fetch saved reports.",
+      },
       { status: 500 }
     );
   }
@@ -60,11 +68,12 @@ export async function POST(request: Request) {
 
     const listedPriceUsd = safeNumber(body.listedPriceUsd);
     const sizeSqm = safeNumber(body.sizeSqm, 100);
+    const listingId = body.listingId ? safeNumber(body.listingId) : null;
 
     const report = await prisma.evaluationReport.create({
       data: {
-        userId: user?.id,
-        listingId: body.listingId ? safeNumber(body.listingId) : undefined,
+        userId: user?.id ?? null,
+        listingId: listingId && listingId > 0 ? listingId : null,
 
         location: safeString(body.location, "Addis Ababa"),
         propertyType: safeString(body.propertyType, "Property"),
@@ -81,8 +90,11 @@ export async function POST(request: Request) {
         estimatedValue: safeNumber(body.estimatedValue),
         priceSignal: safeString(body.priceSignal, "within-range"),
         priceGapPercent: safeNumber(body.priceGapPercent),
-        riskLevel: safeString(body.riskLevel, "standard"),
-        opportunitySignal: safeString(body.opportunitySignal, "Standard review"),
+        riskLevel: safeString(body.riskLevel, "normal"),
+        opportunitySignal: safeString(
+          body.opportunitySignal,
+          "Review details"
+        ),
         opportunityNote: safeString(
           body.opportunityNote,
           "Review listing details before moving forward."
@@ -96,21 +108,28 @@ export async function POST(request: Request) {
           sizeSqm > 0 ? Math.round(listedPriceUsd / sizeSqm) : 0
         ),
         nearbyAveragePrice: safeNumber(body.nearbyAveragePrice),
-        nearbyAveragePricePerSqm: safeNumber(
-          body.nearbyAveragePricePerSqm
-        ),
+        nearbyAveragePricePerSqm: safeNumber(body.nearbyAveragePricePerSqm),
         modelSource: body.modelSource
           ? safeString(body.modelSource)
           : undefined,
       },
     });
 
-    return NextResponse.json(report, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        report,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Failed to save report:", error);
 
     return NextResponse.json(
-      { message: "Failed to save report." },
+      {
+        success: false,
+        message: "Noble Addis could not save this report.",
+      },
       { status: 500 }
     );
   }

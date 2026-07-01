@@ -1,13 +1,21 @@
-import { EvaluationResult, formatMoney } from "../lib/prediction";
+import { formatMoney } from "../lib/prediction";
+import type { EvaluationResult } from "../lib/prediction";
 
 type Props = {
   result: EvaluationResult;
 };
 
+const fallbackRiskFactors = [
+  "Compare the price with similar listings in the same area.",
+  "Confirm the exact property location before visiting.",
+  "Ask for ownership documents before making any payment.",
+  "Check the agent or seller details before negotiation.",
+];
+
 function getReviewLabel(riskLevel?: string) {
-  if (riskLevel === "suspicious") return "High review required";
-  if (riskLevel === "medium-risk") return "Needs review";
-  return "Standard review";
+  if (riskLevel === "suspicious") return "High caution";
+  if (riskLevel === "medium-risk") return "Needs closer review";
+  return "Looks reasonable";
 }
 
 function getReviewClass(riskLevel?: string) {
@@ -17,18 +25,36 @@ function getReviewClass(riskLevel?: string) {
 }
 
 function getPriceSignal(signal?: string) {
-  if (signal === "overpriced") return "Above comparison";
-  if (signal === "underpriced") return "Below comparison";
-  if (signal === "within-range") return "Within range";
+  if (signal === "overpriced") return "Above expected range";
+  if (signal === "underpriced") return "Below expected range";
+  if (signal === "within-range") return "Within expected range";
   return "Needs review";
 }
 
-function formatPercent(value?: number | null) {
+function getActionText(riskLevel?: string) {
+  if (riskLevel === "suspicious") return "Verify first";
+  if (riskLevel === "medium-risk") return "Review carefully";
+  return "Safe to continue";
+}
+
+function formatPriceGap(value?: number | null) {
   if (typeof value !== "number" || Number.isNaN(value)) {
-    return "Not available";
+    return "Not enough data";
+  }
+
+  if (Math.abs(value) > 200) {
+    return "Large difference";
   }
 
   return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+}
+
+function formatScore(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "Not scored";
+  }
+
+  return `${value}/100`;
 }
 
 function safeText(value?: string | null, fallback = "Review required") {
@@ -43,21 +69,17 @@ export default function ResultCards({ result }: Props) {
   const riskFactors =
     result.riskFactors && result.riskFactors.length > 0
       ? result.riskFactors
-      : [
-          "Review the listing details before negotiation.",
-          "Compare the price with similar nearby listings.",
-          "Confirm ownership documents and exact location.",
-        ];
+      : fallbackRiskFactors;
 
   return (
     <section className="property-report-panel">
       <div className="report-header">
         <div>
-          <p className="section-kicker">Review result</p>
-          <h2>Buyer assessment</h2>
+          <p className="section-kicker">Buyer review</p>
+          <h2>Listing assessment</h2>
           <span>
-            A practical summary of price, listing quality, and recommended
-            next steps.
+            A practical review of the asking price, listing quality, and next
+            steps before contacting the seller or agent.
           </span>
         </div>
 
@@ -68,26 +90,32 @@ export default function ResultCards({ result }: Props) {
 
       <div className="report-metrics-grid">
         <div className="report-metric-card primary">
-          <small>Negotiation range</small>
+          <small>Suggested negotiation range</small>
           <strong>
             {formatMoney(result.negotiationLow)} -{" "}
             {formatMoney(result.negotiationHigh)}
           </strong>
-          <p>Suggested range to guide early buyer negotiation.</p>
+          <p>
+            A starting range the buyer can use before discussing the final
+            price.
+          </p>
         </div>
 
         <div className="report-metric-card">
-          <small>Reference value</small>
+          <small>Estimated fair value</small>
           <strong>{formatMoney(result.estimatedValue)}</strong>
-          <p>Estimated value based on available listing fields.</p>
+          <p>
+            Estimated from the listing details provided: area, size, rooms,
+            amenities, and listing completeness.
+          </p>
         </div>
 
         <div className="report-metric-card">
           <small>Price signal</small>
           <strong>{getPriceSignal(result.priceSignal)}</strong>
           <p>
-            Difference from reference value:{" "}
-            <b>{formatPercent(result.priceGapPercent)}</b>
+            Difference from estimated value:{" "}
+            <b>{formatPriceGap(result.priceGapPercent)}</b>
           </p>
         </div>
       </div>
@@ -95,8 +123,8 @@ export default function ResultCards({ result }: Props) {
       <div className="report-detail-grid">
         <div className="report-card">
           <div className="report-card-title">
-            <h3>Market comparison</h3>
-            <span>Price context</span>
+            <h3>Price context</h3>
+            <span>Market check</span>
           </div>
 
           <div className="comparison-list">
@@ -119,31 +147,25 @@ export default function ResultCards({ result }: Props) {
 
         <div className="report-card">
           <div className="report-card-title">
-            <h3>Listing review</h3>
+            <h3>Listing checks</h3>
             <span>{getReviewLabel(result.riskLevel)}</span>
           </div>
 
           <div className="risk-score-row">
             <div>
               <small>Review score</small>
-              <strong>
-                {typeof result.riskScore === "number"
-                  ? result.riskScore
-                  : "Review"}
-              </strong>
+              <strong>{formatScore(result.riskScore)}</strong>
             </div>
 
             <div>
-              <small>Action</small>
-              <strong>
-                {safeText(result.opportunitySignal, "Manual review")}
-              </strong>
+              <small>Suggested action</small>
+              <strong>{getActionText(result.riskLevel)}</strong>
             </div>
           </div>
 
           <ul className="risk-factor-list">
             {riskFactors.slice(0, 4).map((factor, index) => (
-              <li key={index}>{factor}</li>
+              <li key={`${factor}-${index}`}>{factor}</li>
             ))}
           </ul>
         </div>
@@ -155,17 +177,17 @@ export default function ResultCards({ result }: Props) {
           <p>
             {safeText(
               result.opportunityNote,
-              "Review the listing source, confirm the location, and request ownership documents before moving forward."
+              "Contact the seller only after confirming the location, ownership documents, and viewing arrangements."
             )}
           </p>
         </div>
 
         <div>
-          <h3>Assessment note</h3>
+          <h3>Review note</h3>
           <p>
             {safeText(
               result.explanation,
-              "This assessment is based on available listing fields and should be treated as an early review."
+              "This review uses the available listing details to give an early price and risk signal. It should support, not replace, buyer verification."
             )}
           </p>
         </div>

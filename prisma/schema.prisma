@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -52,6 +52,21 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum HelpRequestType {
+  REVIEW_EXPLANATION
+  SUSPICIOUS_LISTING
+  PROPERTY_VERIFICATION
+  WRONG_INFORMATION
+  GENERAL_SUPPORT
+}
+
+enum HelpRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 model User {
   id              Int              @id @default(autoincrement())
   name            String
@@ -67,6 +82,7 @@ model User {
   savedListings SavedListing[]
   reservations  ReservationRequest[]
   payments      Payment[]
+  helpRequests  HelpRequest[]
 }
 
 model PropertyListing {
@@ -177,4 +193,22 @@ model Payment {
 
   user        User                @relation(fields: [userId], references: [id])
   reservation ReservationRequest? @relation(fields: [reservationId], references: [id])
+}
+
+model HelpRequest {
+  id          Int               @id @default(autoincrement())
+  userId      Int?
+  name        String
+  email       String
+  phone       String?
+  issueType   HelpRequestType
+  location    String?
+  listingName String?
+  message     String
+  status      HelpRequestStatus @default(OPEN)
+  adminNote   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
 }

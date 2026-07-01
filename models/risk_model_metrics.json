@@ -1,0 +1,62 @@
+{
+  "rows_used": 85400,
+  "training_rows": 68320,
+  "testing_rows": 17080,
+  "features": [
+    "listed_price",
+    "price_per_sqm",
+    "size_sqm",
+    "bedrooms",
+    "bathrooms",
+    "image_count",
+    "latitude",
+    "longitude",
+    "floor",
+    "description_length",
+    "completeness_score",
+    "property_type",
+    "listing_type",
+    "place_name",
+    "condition",
+    "furnishing"
+  ],
+  "accuracy": 0.8289227166276346,
+  "classification_report": {
+    "medium-risk": {
+      "precision": 0.585254691689008,
+      "recall": 0.6838972431077694,
+      "f1-score": 0.6307425599537706,
+      "support": 3192.0
+    },
+    "normal": {
+      "precision": 0.9561742934051144,
+      "recall": 0.8565938206480783,
+      "f1-score": 0.9036489387073694,
+      "support": 13270.0
+    },
+    "suspicious": {
+      "precision": 0.4158686730506156,
+      "recall": 0.9838187702265372,
+      "f1-score": 0.5846153846153846,
+      "support": 618.0
+    },
+    "accuracy": 0.8289227166276346,
+    "macro avg": {
+      "precision": 0.6524325527149127,
+      "recall": 0.8414366113274617,
+      "f1-score": 0.7063356277588415,
+      "support": 17080.0
+    },
+    "weighted avg": {
+      "precision": 0.8673051925821115,
+      "recall": 0.8289227166276346,
+      "f1-score": 0.8411032772664833,
+      "support": 17080.0
+    }
+  },
+  "risk_label_distribution": {
+    "normal": 66350,
+    "medium-risk": 15961,
+    "suspicious": 3089
+  }
+}
