@@ -1,0 +1,11 @@
+model_api
+models
+*.ipynb
+__pycache__
+*.pyc
+
+data/addis_real_estate.csv
+data/addis_model_ready.csv
+data/addis_model_ready_with_risk.csv
+data/archive
+screenshots
