@@ -1,276 +1,127 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useState } from "react";
 import {
-  AlertCircle,
-  CheckCircle,
-  ImageIcon,
+  AlertTriangle,
+  CheckCircle2,
   Loader2,
-  MapPin,
-  Search,
-  SlidersHorizontal,
-  XCircle,
+  SearchCheck,
+  ShieldAlert,
 } from "lucide-react";
-import { EvaluationResult, formatMoney } from "../lib/prediction";
-import ResultCards from "./ResultCards";
-import MapView from "./MapView";
-
-type ListingRecord = {
-  id: string;
-  title: string;
-  area: string;
-  location: string;
-  propertyType: string;
-  listedPriceUsd: number;
-  sizeSqm: number;
-  bedrooms: number;
-  bathrooms: number;
-  amenitiesCount: number;
-  descriptionLength?: number;
-  completenessScore: number;
-  pricePerSqm?: number;
-  riskLabel?: string;
-  description: string;
-  imageUrl?: string;
-  sourceUrl?: string;
-};
+import { formatMoney } from "../lib/prediction";
 
 type FormState = {
   location: string;
   propertyType: string;
-  listedPriceUsd: number;
-  sizeSqm: number;
-  bedrooms: number;
-  bathrooms: number;
-  amenitiesCount: number;
-  completenessScore: number;
+  listedPriceUsd: string;
+  sizeSqm: string;
+  bedrooms: string;
+  bathrooms: string;
+  amenitiesCount: string;
   description: string;
 };
 
-const emptyForm: FormState = {
-  location: "",
-  propertyType: "Apartment",
-  listedPriceUsd: 0,
-  sizeSqm: 0,
-  bedrooms: 0,
-  bathrooms: 0,
-  amenitiesCount: 0,
-  completenessScore: 0.7,
-  description: "",
+type ReviewResult = {
+  estimatedValue?: number;
+  negotiationLow?: number;
+  negotiationHigh?: number;
+  priceSignal?: string;
+  priceGapPercent?: number;
+  riskLevel?: string;
+  riskScore?: number;
+  pricePerSqm?: number;
+  nearbyAveragePrice?: number;
+  nearbyAveragePricePerSqm?: number;
+  riskFactors?: string[];
+  opportunitySignal?: string;
+  opportunityNote?: string;
+  explanation?: string;
+  modelSource?: string;
 };
 
-function cleanText(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+const initialForm: FormState = {
+  location: "Bole",
+  propertyType: "Apartment",
+  listedPriceUsd: "1850000",
+  sizeSqm: "95",
+  bedrooms: "2",
+  bathrooms: "2",
+  amenitiesCount: "5",
+  description:
+    "Two bedroom apartment in Bole with good access, listed amenities, and clear property details.",
+};
+
+function cleanSignal(value?: string) {
+  if (!value) return "Within expected range";
+
+  return value
+    .replaceAll("-", " ")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getRiskClass(value?: string) {
-  const cleanValue = value?.toLowerCase() || "";
-
-  if (cleanValue.includes("suspicious") || cleanValue.includes("flagged")) {
-    return "model-pill danger";
+function getRiskDisplay(riskLevel?: string) {
+  if (riskLevel === "suspicious") {
+    return {
+      label: "Suspicious listing",
+      className: "danger",
+      icon: ShieldAlert,
+      note: "This listing needs strong verification before contacting the seller or making payment.",
+    };
   }
 
-  if (cleanValue.includes("medium") || cleanValue.includes("review")) {
-    return "model-pill warning";
+  if (riskLevel === "medium-risk") {
+    return {
+      label: "Needs review",
+      className: "warning",
+      icon: AlertTriangle,
+      note: "This listing may still be valid, but the buyer should verify the price, documents, and seller details.",
+    };
   }
 
-  return "model-pill success";
-}
-
-function getRiskLabel(value?: string) {
-  if (!value) return "normal";
-
-  if (value === "medium-risk") return "needs review";
-
-  return value;
-}
-
-function listingToForm(listing: ListingRecord): FormState {
   return {
-    location: listing.location,
-    propertyType: listing.propertyType,
-    listedPriceUsd: listing.listedPriceUsd,
-    sizeSqm: listing.sizeSqm,
-    bedrooms: listing.bedrooms,
-    bathrooms: listing.bathrooms,
-    amenitiesCount: listing.amenitiesCount,
-    completenessScore: listing.completenessScore,
-    description: listing.description,
+    label: "Looks reasonable",
+    className: "success",
+    icon: CheckCircle2,
+    note: "This listing looks reasonable for an initial review, but the buyer should still confirm the details.",
   };
 }
 
-function findMatchingListing(form: FormState, listings: ListingRecord[]) {
-  const enteredLocation = cleanText(form.location);
-  const enteredType = cleanText(form.propertyType);
-
-  return (
-    listings.find((listing) => {
-      const listingArea = cleanText(listing.area);
-      const listingLocation = cleanText(listing.location);
-      const listingType = cleanText(listing.propertyType);
-
-      const locationMatches =
-        enteredLocation.includes(listingArea) ||
-        enteredLocation.includes(listingLocation) ||
-        listingLocation.includes(enteredLocation);
-
-      const typeMatches = enteredType === listingType;
-      const bedroomsMatch = Number(form.bedrooms) === listing.bedrooms;
-      const bathroomsMatch = Number(form.bathrooms) === listing.bathrooms;
-      const sizeMatches = Math.abs(Number(form.sizeSqm) - listing.sizeSqm) <= 15;
-
-      return (
-        locationMatches &&
-        typeMatches &&
-        bedroomsMatch &&
-        bathroomsMatch &&
-        sizeMatches
-      );
-    }) || null
-  );
-}
-
-async function saveReportToDatabase(
-  form: FormState,
-  result: EvaluationResult
-) {
-  const response = await fetch("/api/reports", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ...form,
-      ...result,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Report could not be saved.");
-  }
-
-  return data.report;
-}
-
-function getLocationCoordinates(location: string) {
-  const cleanLocation = location.toLowerCase();
-
-  if (cleanLocation.includes("bole")) {
-    return { latitude: 8.9806, longitude: 38.7578 };
-  }
-
-  if (cleanLocation.includes("cmc")) {
-    return { latitude: 9.0206, longitude: 38.8462 };
-  }
-
-  if (cleanLocation.includes("ayat")) {
-    return { latitude: 9.0487, longitude: 38.8903 };
-  }
-
-  if (cleanLocation.includes("summit")) {
-    return { latitude: 9.0564, longitude: 38.8725 };
-  }
-
-  if (cleanLocation.includes("gerji")) {
-    return { latitude: 9.0128, longitude: 38.8354 };
-  }
-
-  if (cleanLocation.includes("saris")) {
-    return { latitude: 8.9242, longitude: 38.7469 };
-  }
-
-  if (cleanLocation.includes("kality")) {
-    return { latitude: 8.9096, longitude: 38.7737 };
-  }
-
-  if (cleanLocation.includes("megenagna")) {
-    return { latitude: 9.0201, longitude: 38.8028 };
-  }
-
-  if (cleanLocation.includes("piassa")) {
-    return { latitude: 9.0373, longitude: 38.7524 };
-  }
-
-  return { latitude: 9.03, longitude: 38.74 };
-}
-
 export default function PropertyForm() {
-  const [listings, setListings] = useState<ListingRecord[]>([]);
-  const [selectedListing, setSelectedListing] =
-    useState<ListingRecord | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [result, setResult] = useState<EvaluationResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingListings, setIsLoadingListings] = useState(true);
-  const [pageMessage, setPageMessage] = useState("");
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [result, setResult] = useState<ReviewResult | null>(null);
+  const [message, setMessage] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
 
-  useEffect(() => {
-    async function loadListings() {
-      try {
-        const response = await fetch("/api/listings");
-
-        if (!response.ok) {
-          throw new Error("Could not load listings.");
-        }
-
-        const data = await response.json();
-        const loadedListings: ListingRecord[] = data.listings || [];
-
-        setListings(loadedListings);
-
-        if (loadedListings.length > 0) {
-          setSelectedListing(loadedListings[0]);
-          setForm(listingToForm(loadedListings[0]));
-        }
-      } catch (error) {
-        console.error("Listing load error:", error);
-        setPageMessage("Unable to load available listing records.");
-      } finally {
-        setIsLoadingListings(false);
-      }
-    }
-
-    loadListings();
-  }, []);
-
-  const matchedListing = findMatchingListing(form, listings);
-  const isAvailable = Boolean(matchedListing);
-  const coordinates = getLocationCoordinates(
-    matchedListing ? matchedListing.location : form.location
-  );
-
-  function applyListing(listing: ListingRecord) {
-    setSelectedListing(listing);
-    setForm(listingToForm(listing));
-    setResult(null);
-    setPageMessage("");
-  }
-
-  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
+  function updateField(field: keyof FormState, value: string) {
     setForm((current) => ({
       ...current,
-      [key]: value,
+      [field]: value,
     }));
-
-    setResult(null);
-    setPageMessage("");
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!matchedListing) {
-      setPageMessage(
-        "This property is not available in the current Noble Addis records."
-      );
+    setIsChecking(true);
+    setMessage("");
+    setResult(null);
+
+    const listedPrice = Number(form.listedPriceUsd);
+    const sizeSqm = Number(form.sizeSqm);
+
+    if (!listedPrice || listedPrice <= 0) {
+      setMessage("Please enter a valid listed price.");
+      setIsChecking(false);
       return;
     }
 
-    setIsLoading(true);
-    setPageMessage("");
+    if (!sizeSqm || sizeSqm <= 0) {
+      setMessage("Please enter a valid property size.");
+      setIsChecking(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/evaluate", {
@@ -278,233 +129,79 @@ export default function PropertyForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          location: form.location,
+          propertyType: form.propertyType,
+          listedPriceUsd: listedPrice,
+          sizeSqm,
+          bedrooms: Number(form.bedrooms) || 0,
+          bathrooms: Number(form.bathrooms) || 0,
+          amenitiesCount: Number(form.amenitiesCount) || 0,
+          description: form.description,
+          descriptionLength: form.description.length,
+          completenessScore: form.description.length > 60 ? 0.85 : 0.6,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to review listing.");
+        setMessage(data.message || "Unable to review this property.");
+        setIsChecking(false);
+        return;
       }
 
-      const reviewResult = data as EvaluationResult;
-
-      setResult(reviewResult);
-
-      try {
-        await saveReportToDatabase(form, reviewResult);
-        setPageMessage("Review complete. Saved to your reports.");
-      } catch (saveError) {
-        console.error("Report save error:", saveError);
-        setPageMessage(
-          "Review complete, but the report could not be saved to the database."
-        );
-      }
-    } catch (error) {
-      console.error("Review error:", error);
-      setPageMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to complete the review. Please try again."
-      );
+      setResult(data);
+    } catch {
+      setMessage("Unable to review this property. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsChecking(false);
     }
   }
 
-  const messageIsError =
-    pageMessage.includes("Unable") ||
-    pageMessage.includes("not available") ||
-    pageMessage.includes("Failed") ||
-    pageMessage.includes("Could not") ||
-    pageMessage.includes("could not");
+  const riskDisplay = getRiskDisplay(result?.riskLevel);
+  const RiskIcon = riskDisplay.icon;
 
   return (
-    <section className="property-review-shell">
-      <div className="property-review-hero">
+    <section className="property-review-shell simple-evaluate-shell">
+      <div className="property-review-hero simple-evaluate-hero">
         <div>
-          <p className="section-kicker">Property review</p>
-          <h2>Check listing availability</h2>
+          <p className="small-label">Property review</p>
+          <h2>Check a property price and risk level</h2>
           <p>
-            Enter the property details to check whether the listing exists in
-            the current Noble Addis records. If it is available, the platform
-            prepares a buyer review with price guidance and next steps.
+            Enter the main listing details to estimate a fair value and identify
+            whether the property looks reasonable, needs review, or appears
+            suspicious.
           </p>
         </div>
 
         <div className="property-review-hero-stat">
-          <span>Available records</span>
-          <strong>{isLoadingListings ? "..." : listings.length}</strong>
+          <span>Model data</span>
+          <strong>85,400 records</strong>
         </div>
       </div>
 
-      <div className="property-review-grid">
-        <aside className="rental-record-panel">
-          <div className="panel-heading">
-            <p className="section-kicker">Records</p>
-            <h3>Available listings</h3>
-          </div>
-
-          {isAvailable && matchedListing ? (
-            matchedListing.imageUrl ? (
-              <div className="selected-property-photo">
-                <img src={matchedListing.imageUrl} alt={matchedListing.title} />
-
-                <div className="selected-property-photo-content">
-                  <span>Matched property</span>
-                  <strong>{matchedListing.title}</strong>
-                  <p>{matchedListing.description}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="property-photo-placeholder">
-                <div>
-                  <ImageIcon size={36} />
-                  <h4>Photo not added yet</h4>
-                  <p>
-                    This listing is available, but no property image has been
-                    attached yet. Once listing photos are added, they will appear
-                    here.
-                  </p>
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="not-available-photo-card">
-              <ImageIcon size={34} />
-              <h4>No matching property found</h4>
-              <p>
-                The details entered do not match a listing currently stored in
-                Noble Addis.
-              </p>
-            </div>
-          )}
-
-          <div className="rental-record-list">
-            {isLoadingListings ? (
-              <div className="not-available-photo-card">
-                <Loader2 className="spin-icon" size={28} />
-                <h4>Loading listings</h4>
-                <p>Checking the current Noble Addis records...</p>
-              </div>
-            ) : listings.length === 0 ? (
-              <div className="not-available-photo-card">
-                <XCircle size={34} />
-                <h4>No listings loaded</h4>
-                <p>
-                  The listing records could not be loaded. Check the listings
-                  API or data file.
-                </p>
-              </div>
-            ) : (
-              listings.map((listing) => (
-                <button
-                  type="button"
-                  key={listing.id}
-                  className={
-                    selectedListing?.id === listing.id
-                      ? "rental-record-card active"
-                      : "rental-record-card"
-                  }
-                  onClick={() => applyListing(listing)}
-                >
-                  <div className="rental-record-main">
-                    <span>{listing.area}</span>
-                    <strong>{listing.title}</strong>
-                    <small>
-                      {listing.bedrooms} bed · {listing.bathrooms} bath ·{" "}
-                      {listing.sizeSqm} sqm
-                    </small>
-                  </div>
-
-                  <div className="rental-record-price">
-                    <strong>{formatMoney(listing.listedPriceUsd)}</strong>
-                    <span>listed price</span>
-                  </div>
-
-                  <div className={getRiskClass(listing.riskLabel)}>
-                    {getRiskLabel(listing.riskLabel)}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </aside>
-
-        <form className="rental-form-panel" onSubmit={handleSubmit}>
+      <div className="simple-evaluate-grid">
+        <form onSubmit={handleSubmit} className="rental-form-panel">
           <div className="form-panel-header">
             <div>
-              <p className="section-kicker">Search criteria</p>
-              <h3>Listing details</h3>
+              <p className="section-kicker">Listing details</p>
+              <h3>Property information</h3>
               <span>
-                Fill in the property details to check whether the listing is
-                available in the current records.
+                Keep the input simple. The review focuses on price prediction
+                and suspicious listing signals.
               </span>
             </div>
-
-            <Search size={22} />
+            <SearchCheck size={28} />
           </div>
-
-          <div
-            className={
-              isAvailable
-                ? "availability-card available"
-                : "availability-card unavailable"
-            }
-          >
-            <div>
-              <span>Availability status</span>
-
-              {isAvailable && matchedListing ? (
-                <>
-                  <strong>Available</strong>
-                  <p>
-                    A matching record was found for {matchedListing.area}. You
-                    can generate a buyer review for this listing.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <strong>Not available</strong>
-                  <p>
-                    No matching record was found. Check the area, property type,
-                    bedroom count, bathroom count, and size.
-                  </p>
-                </>
-              )}
-            </div>
-
-            {isAvailable ? <CheckCircle size={28} /> : <XCircle size={28} />}
-          </div>
-
-          {isAvailable && matchedListing && (
-            <div className="selected-rental-summary">
-              <div>
-                <span>Matched listing</span>
-                <strong>{matchedListing.title}</strong>
-              </div>
-
-              <div>
-                <span>Listed price</span>
-                <strong>{formatMoney(matchedListing.listedPriceUsd)}</strong>
-              </div>
-
-              <div>
-                <span>Listing status</span>
-                <strong>{getRiskLabel(matchedListing.riskLabel)}</strong>
-              </div>
-            </div>
-          )}
 
           <div className="input-grid">
             <label>
-              Area / location
+              Location
               <input
                 value={form.location}
-                placeholder="Example: Bole"
-                onChange={(event) =>
-                  updateField("location", event.target.value)
-                }
+                onChange={(event) => updateField("location", event.target.value)}
+                placeholder="Bole"
               />
             </label>
 
@@ -516,13 +213,12 @@ export default function PropertyForm() {
                   updateField("propertyType", event.target.value)
                 }
               >
-                <option value="Apartment">Apartment</option>
-                <option value="House">House</option>
-                <option value="Condo">Condo</option>
-                <option value="Villa">Villa</option>
-                <option value="Warehouse">Warehouse</option>
-                <option value="Commercial">Commercial</option>
-                <option value="Studio">Studio</option>
+                <option>Apartment</option>
+                <option>House</option>
+                <option>Condo</option>
+                <option>Villa</option>
+                <option>Commercial</option>
+                <option>Warehouse</option>
               </select>
             </label>
 
@@ -532,8 +228,9 @@ export default function PropertyForm() {
                 type="number"
                 value={form.listedPriceUsd}
                 onChange={(event) =>
-                  updateField("listedPriceUsd", Number(event.target.value))
+                  updateField("listedPriceUsd", event.target.value)
                 }
+                placeholder="1850000"
               />
             </label>
 
@@ -542,9 +239,8 @@ export default function PropertyForm() {
               <input
                 type="number"
                 value={form.sizeSqm}
-                onChange={(event) =>
-                  updateField("sizeSqm", Number(event.target.value))
-                }
+                onChange={(event) => updateField("sizeSqm", event.target.value)}
+                placeholder="95"
               />
             </label>
 
@@ -553,9 +249,7 @@ export default function PropertyForm() {
               <input
                 type="number"
                 value={form.bedrooms}
-                onChange={(event) =>
-                  updateField("bedrooms", Number(event.target.value))
-                }
+                onChange={(event) => updateField("bedrooms", event.target.value)}
               />
             </label>
 
@@ -564,128 +258,135 @@ export default function PropertyForm() {
               <input
                 type="number"
                 value={form.bathrooms}
-                onChange={(event) =>
-                  updateField("bathrooms", Number(event.target.value))
-                }
+                onChange={(event) => updateField("bathrooms", event.target.value)}
               />
             </label>
 
             <label>
-              Amenities listed
+              Amenities count
               <input
                 type="number"
                 value={form.amenitiesCount}
                 onChange={(event) =>
-                  updateField("amenitiesCount", Number(event.target.value))
-                }
-              />
-            </label>
-
-            <label>
-              Listing completeness
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={form.completenessScore}
-                onChange={(event) =>
-                  updateField("completenessScore", Number(event.target.value))
+                  updateField("amenitiesCount", event.target.value)
                 }
               />
             </label>
           </div>
 
           <label className="full-input">
-            Listing description
+            Short listing description
             <textarea
               value={form.description}
-              onChange={(event) =>
-                updateField("description", event.target.value)
-              }
-              rows={4}
+              onChange={(event) => updateField("description", event.target.value)}
+              placeholder="Briefly describe the property..."
             />
           </label>
 
-          <button
-            className="submit-review-button"
-            type="submit"
-            disabled={isLoading || isLoadingListings || !isAvailable}
-          >
-            {isLoading ? (
+          <button className="submit-review-button" type="submit">
+            {isChecking ? (
               <>
                 <Loader2 className="spin-icon" size={18} />
-                Reviewing listing...
-              </>
-            ) : isAvailable ? (
-              <>
-                Generate review
-                <CheckCircle size={18} />
+                Checking property...
               </>
             ) : (
               <>
-                Listing not available
-                <XCircle size={18} />
+                <SearchCheck size={18} />
+                Check property
               </>
             )}
           </button>
 
-          {pageMessage && (
-            <div
-              className={
-                messageIsError ? "review-message error" : "review-message"
-              }
-            >
-              {messageIsError ? (
-                <AlertCircle size={18} />
-              ) : (
-                <CheckCircle size={18} />
-              )}
-
-              <span>{pageMessage}</span>
-            </div>
-          )}
+          {message && <div className="review-message error">{message}</div>}
         </form>
-      </div>
 
-      {result && matchedListing && (
-        <div className="review-results-stack">
-          <ResultCards result={result} />
-
-          <div className="review-lower-grid">
-            <MapView
-              latitude={coordinates.latitude}
-              longitude={coordinates.longitude}
-              location={matchedListing.location}
-            />
-
-            <div className="property-review-note">
-              <MapPin size={22} />
-              <div>
-                <h3>Location note</h3>
-                <p>
-                  The map gives an area reference only. Buyers should confirm
-                  the exact address, access road, ownership documents, and
-                  viewing arrangements before making any payment.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="property-review-note">
-            <SlidersHorizontal size={22} />
-            <div>
-              <h3>What affects the review?</h3>
+        <aside className="property-report-panel simple-result-panel">
+          {!result ? (
+            <div className="simple-empty-result">
+              <SearchCheck size={34} />
+              <h3>Review result will appear here</h3>
               <p>
-                The review changes when the listed price, property size,
-                bedrooms, bathrooms, amenities, and listing completeness are
-                adjusted. This helps test fair listings, overpriced listings,
-                low-price listings, and incomplete listings.
+                The result will show the estimated property value, price signal,
+                and suspicion level.
               </p>
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <>
+              <div className="report-header">
+                <div>
+                  <h2>Property review result</h2>
+                  <span>
+                    Based on the submitted details and the trained Noble Addis
+                    model.
+                  </span>
+                </div>
+
+                <span className={`report-status ${riskDisplay.className}`}>
+                  {riskDisplay.label}
+                </span>
+              </div>
+
+              <div className="report-metrics-grid simple-metrics-grid">
+                <div className="report-metric-card primary">
+                  <small>Estimated fair value</small>
+                  <strong>{formatMoney(Number(result.estimatedValue || 0))}</strong>
+                  <p>
+                    Suggested fair value based on the trained property price
+                    model.
+                  </p>
+                </div>
+
+                <div className="report-metric-card">
+                  <small>Listed price</small>
+                  <strong>{formatMoney(Number(form.listedPriceUsd))}</strong>
+                  <p>Price entered from the property listing.</p>
+                </div>
+
+                <div className="report-metric-card">
+                  <small>Price signal</small>
+                  <strong>{cleanSignal(result.priceSignal)}</strong>
+                  <p>
+                    Difference:{" "}
+                    {typeof result.priceGapPercent === "number"
+                      ? `${result.priceGapPercent}%`
+                      : "Not available"}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`simple-risk-box ${riskDisplay.className}`}>
+                <RiskIcon size={24} />
+                <div>
+                  <h3>{riskDisplay.label}</h3>
+                  <p>{riskDisplay.note}</p>
+                </div>
+              </div>
+
+              <div className="report-card simple-guidance-card">
+                <div className="report-card-title">
+                  <h3>Buyer guidance</h3>
+                </div>
+
+                <ul className="risk-factor-list">
+                  {(result.riskFactors || [
+                    "Confirm the exact location and ownership documents.",
+                    "Compare the price with similar properties in the same area.",
+                    "Verify the seller or agent before making any payment.",
+                  ]).map((factor) => (
+                    <li key={factor}>{factor}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="model-source-note">
+                Model source:{" "}
+                {result.modelSource ||
+                  "Trained Noble Addis price and listing risk models."}
+              </p>
+            </>
+          )}
+        </aside>
+      </div>
     </section>
   );
 }

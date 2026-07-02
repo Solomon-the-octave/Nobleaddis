@@ -1,43 +1,13 @@
 import Link from "next/link";
 import {
-  ArrowRight,
+  AlertTriangle,
   BarChart3,
-  ClipboardCheck,
+  CheckCircle2,
+  Database,
   FileText,
-  MapPin,
-  ShieldCheck,
-  TrendingUp,
+  SearchCheck,
+  ShieldAlert,
 } from "lucide-react";
-
-const checks = [
-  {
-    title: "Price range check",
-    text: "See whether a listing looks fair, high, or unusually low compared to similar properties.",
-    icon: BarChart3,
-  },
-  {
-    title: "Listing quality review",
-    text: "Check missing details, unclear information, and signals that may need follow-up.",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "Area context",
-    text: "Review basic location information to support better property decisions.",
-    icon: MapPin,
-  },
-  {
-    title: "Buyer report",
-    text: "Save a simple summary you can use before calling an agent or visiting the property.",
-    icon: FileText,
-  },
-];
-
-const steps = [
-  "Enter the property details",
-  "Review the price signal",
-  "Check listing trust indicators",
-  "Use the report before negotiation",
-];
 
 export default function HomePage() {
   return (
@@ -49,50 +19,54 @@ export default function HomePage() {
           <h1>Make clearer property decisions in Addis Ababa.</h1>
 
           <p>
-            Noble Addis helps buyers review property listings, compare price
-            signals, spot missing details, and prepare better before contacting
-            agents or visiting a property.
+            Noble Addis helps buyers check whether a property price looks fair
+            and whether the listing may need closer verification before
+            contacting an agent, visiting the property, or making any payment.
           </p>
 
           <div className="clean-actions">
             <Link href="/evaluate" className="clean-primary-button">
-              Check a listing
-              <ArrowRight size={18} />
+              <SearchCheck size={18} />
+              Check a property
             </Link>
 
-            <Link href="/insights" className="clean-secondary-button">
-              View market insights
+            <Link href="/reports" className="clean-secondary-button">
+              <FileText size={18} />
+              View saved checks
             </Link>
           </div>
 
           <div className="clean-hero-points">
             <span>
-              <ShieldCheck size={16} />
-              Listing review
+              <Database size={15} />
+              Trained on Addis property data
             </span>
-
             <span>
-              <TrendingUp size={16} />
-              Price guidance
+              <BarChart3 size={15} />
+              Price prediction
             </span>
-
             <span>
-              <MapPin size={16} />
-              Addis-focused
+              <ShieldAlert size={15} />
+              Suspicion review
             </span>
           </div>
         </div>
 
         <div className="clean-summary-card">
           <div className="summary-card-header">
-            <span>Sample review</span>
+            <span>Sample property check</span>
             <strong>Bole, 2-bedroom apartment</strong>
           </div>
 
           <div className="summary-row">
-  <span>Listed price</span>
-  <strong>ETB 1,850,000</strong>
-</div>
+            <span>Listed price</span>
+            <strong>ETB 1,850,000</strong>
+          </div>
+
+          <div className="summary-row">
+            <span>Estimated value</span>
+            <strong>ETB 1,851,294</strong>
+          </div>
 
           <div className="summary-row">
             <span>Price signal</span>
@@ -100,61 +74,98 @@ export default function HomePage() {
           </div>
 
           <div className="summary-row">
-            <span>Listing status</span>
+            <span>Suspicion level</span>
             <strong>Looks reasonable</strong>
           </div>
 
           <p>
-            The listing looks reasonable for an initial review, but the buyer
-            should still confirm the property size, ownership details, exact
-            location, and viewing arrangements before moving forward.
+            The property looks reasonable for an initial review, but the buyer
+            should still confirm the property size, ownership documents, exact
+            location, and seller details before moving forward.
           </p>
         </div>
       </section>
 
       <section className="clean-section">
         <div className="clean-section-title">
-          <p className="small-label">What it checks</p>
-          <h2>Built around real buyer questions</h2>
+          <p className="section-kicker">What it checks</p>
+          <h2>Focused on price and suspicious listing signals</h2>
           <p>
-            Noble Addis keeps the review simple: price, listing quality,
-            location context, and the next step a buyer should take.
+            Noble Addis keeps the review simple. It focuses on the questions a
+            buyer needs answered first: Does the price look fair? Does the
+            listing look suspicious? What should I verify before moving forward?
           </p>
         </div>
 
         <div className="clean-feature-grid">
-          {checks.map((item) => {
-            const Icon = item.icon;
+          <article className="clean-feature-card">
+            <BarChart3 size={26} />
+            <h3>Price prediction</h3>
+            <p>
+              Estimates a fair property value using trained Addis Ababa property
+              data.
+            </p>
+          </article>
 
-            return (
-              <div key={item.title} className="clean-feature-card">
-                <Icon size={22} />
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </div>
-            );
-          })}
+          <article className="clean-feature-card">
+            <AlertTriangle size={26} />
+            <h3>Price signal</h3>
+            <p>
+              Compares the listed price with the estimated value and shows
+              whether it looks high, low, or within range.
+            </p>
+          </article>
+
+          <article className="clean-feature-card">
+            <ShieldAlert size={26} />
+            <h3>Suspicion review</h3>
+            <p>
+              Flags listings that may need closer checks because of price,
+              missing details, or unusual listing patterns.
+            </p>
+          </article>
+
+          <article className="clean-feature-card">
+            <CheckCircle2 size={26} />
+            <h3>Buyer guidance</h3>
+            <p>
+              Gives simple next steps such as checking ownership documents,
+              seller identity, property condition, and exact location.
+            </p>
+          </article>
         </div>
       </section>
 
-      <section className="clean-section clean-process-section">
+      <section className="clean-process-section">
         <div className="clean-section-title">
-          <p className="small-label">How it works</p>
-          <h2>From listing details to a better decision</h2>
+          <p className="section-kicker">How it works</p>
+          <h2>A simple property review flow</h2>
           <p>
-            The goal is not to replace the buyer. It gives the buyer a clearer
-            starting point before making calls, visits, negotiations, or
-            payments.
+            The platform is designed to support quick decision-making before a
+            buyer spends time or money on a property.
           </p>
         </div>
 
         <div className="clean-step-grid">
-          {steps.map((step, index) => (
-            <div key={step} className="clean-step-card">
-              <span>{index + 1}</span>
-              <p>{step}</p>
-            </div>
-          ))}
+          <div className="clean-step-card">
+            <span>1</span>
+            <p>Enter the property location, type, price, size, and rooms.</p>
+          </div>
+
+          <div className="clean-step-card">
+            <span>2</span>
+            <p>The platform estimates a fair property value.</p>
+          </div>
+
+          <div className="clean-step-card">
+            <span>3</span>
+            <p>It compares the listed price with the estimated value.</p>
+          </div>
+
+          <div className="clean-step-card">
+            <span>4</span>
+            <p>It shows the suspicion level and what the buyer should verify.</p>
+          </div>
         </div>
       </section>
     </main>

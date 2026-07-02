@@ -1,53 +1,73 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "../../../lib/prisma";
 
-function getRedirectPath(role: string) {
-  if (role === "ADMIN") return "/admin";
-  if (role === "OWNER") return "/owner/dashboard";
-  return "/buyer/dashboard";
+export const dynamic = "force-dynamic";
+
+const ADMIN_EMAIL = "admin@nobleaddis.com";
+const ADMIN_PASSWORD = "nobleaddis123";
+
+type AdminLoginPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
+
+async function adminLoginAction(formData: FormData) {
+  "use server";
+
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+
+  const password = String(formData.get("password") || "").replace(/\s/g, "");
+
+  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    redirect("/admin/login?error=invalid");
+  }
+
+  const user = await prisma.user.upsert({
+    where: {
+      email: ADMIN_EMAIL,
+    },
+    update: {
+      name: "Noble Addis Admin",
+      role: "ADMIN" as any,
+      passwordHash: ADMIN_PASSWORD,
+    },
+    create: {
+      name: "Noble Addis Admin",
+      email: ADMIN_EMAIL,
+      role: "ADMIN" as any,
+      passwordHash: ADMIN_PASSWORD,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  const cookieStore = await cookies();
+
+  cookieStore.set("noble_user_id", String(user.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  redirect("/admin");
 }
 
-export default function LoginPage() {
-  const router = useRouter();
-
-  const [email, setEmail] = useState("buyer@nobleaddis.com");
-  const [password, setPassword] = useState("buyer123");
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message || "Unable to sign in.");
-        setIsLoading(false);
-        return;
-      }
-
-      router.push(getRedirectPath(data.user.role));
-      router.refresh();
-    } catch {
-      setMessage("Unable to sign in. Please try again.");
-      setIsLoading(false);
-    }
-  }
+export default async function AdminLoginPage({
+  searchParams,
+}: AdminLoginPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const hasError = params.error === "invalid";
 
   return (
     <main className="auth-page">
@@ -56,17 +76,18 @@ export default function LoginPage() {
           <LockKeyhole size={24} />
         </div>
 
-        <p className="small-label">Account access</p>
+        <p className="small-label">Admin access</p>
         <h1>Sign in to Noble Addis</h1>
-        <p>Access your dashboard based on your account type.</p>
+        <p>Access the platform dashboard and review activity.</p>
 
-        <form onSubmit={handleLogin} className="auth-form">
+        <form action={adminLoginAction} className="auth-form">
           <label>
             Email
             <input
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              name="email"
+              defaultValue="admin@nobleaddis.com"
+              required
             />
           </label>
 
@@ -74,24 +95,20 @@ export default function LoginPage() {
             Password
             <input
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              name="password"
+              placeholder="Enter admin password"
+              required
             />
           </label>
 
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
-          </button>
+          <button type="submit">Sign in</button>
 
-          {message && <p className="auth-message">{message}</p>}
+          {hasError && (
+            <p className="auth-message">
+              Invalid admin email or password. Please try again.
+            </p>
+          )}
         </form>
-
-        <div className="auth-demo-users">
-          <p>Test accounts</p>
-          <span>Buyer: buyer@nobleaddis.com / buyer123</span>
-          <span>Owner: owner@nobleaddis.com / owner123</span>
-          <span>Admin: admin@nobleaddis.com / nobleaddis123</span>
-        </div>
       </section>
     </main>
   );

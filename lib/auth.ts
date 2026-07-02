@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { UserRole } from "@prisma/client";
 import { prisma } from "./prisma";
-import { UserRole } from "@prisma/client";
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -13,7 +13,7 @@ export async function getCurrentUser() {
 
   const numericUserId = Number(userId);
 
-  if (Number.isNaN(numericUserId)) {
+  if (!numericUserId || Number.isNaN(numericUserId)) {
     return null;
   }
 
@@ -26,19 +26,8 @@ export async function getCurrentUser() {
       name: true,
       email: true,
       role: true,
-      createdAt: true,
     },
   });
-
-  return user;
-}
-
-export async function requireRole(allowedRoles: UserRole[]) {
-  const user = await getCurrentUser();
-
-  if (!user || !allowedRoles.includes(user.role)) {
-    return null;
-  }
 
   return user;
 }
@@ -56,27 +45,27 @@ export async function requireUser() {
 export async function requireAdmin() {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== UserRole.ADMIN) {
+  if (!user) {
     redirect("/admin/login");
+  }
+
+  if (user.role !== "ADMIN") {
+    redirect("/login");
   }
 
   return user;
 }
 
-export async function setUserSession(userId: number) {
-  const cookieStore = await cookies();
+export async function requireRole(allowedRoles: UserRole[]) {
+  const user = await getCurrentUser();
 
-  cookieStore.set("noble_user_id", String(userId), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-}
+  if (!user) {
+    redirect("/login");
+  }
 
-export async function clearUserSession() {
-  const cookieStore = await cookies();
+  if (!allowedRoles.includes(user.role)) {
+    redirect("/");
+  }
 
-  cookieStore.delete("noble_user_id");
+  return user;
 }

@@ -1,52 +1,82 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "../../lib/prisma";
 
-function getRedirectPath(role: string) {
-  if (role === "ADMIN") return "/admin";
-  return "/buyer/dashboard";
+export const dynamic = "force-dynamic";
+
+type LoginPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    next?: string;
+  }>;
+};
+
+function getSafeNextPath(value?: string) {
+  if (!value || !value.startsWith("/")) {
+    return "/evaluate";
+  }
+
+  if (value.startsWith("/admin")) {
+    return "/evaluate";
+  }
+
+  return value;
 }
 
-export default function LoginPage() {
-  const router = useRouter();
+async function loginAction(formData: FormData) {
+  "use server";
 
-  const [email, setEmail] = useState("buyer@nobleaddis.com");
-  const [password, setPassword] = useState("buyer123");
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const password = String(formData.get("password") || "").trim();
+  const nextPath = getSafeNextPath(String(formData.get("next") || ""));
 
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message || "Unable to sign in.");
-        setIsLoading(false);
-        return;
-      }
-
-      router.push(getRedirectPath(data.user.role));
-      router.refresh();
-    } catch {
-      setMessage("Unable to sign in. Please try again.");
-      setIsLoading(false);
-    }
+  if (!email || !password) {
+    redirect(`/login?error=invalid&next=${encodeURIComponent(nextPath)}`);
   }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      passwordHash: true,
+    },
+  });
+
+  if (!user || user.passwordHash !== password) {
+    redirect(`/login?error=invalid&next=${encodeURIComponent(nextPath)}`);
+  }
+
+  const cookieStore = await cookies();
+
+  cookieStore.set("noble_user_id", String(user.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  if (user.role === "ADMIN") {
+    redirect("/admin");
+  }
+
+  redirect(nextPath);
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const nextPath = getSafeNextPath(params.next);
+  const hasError = params.error === "invalid";
 
   return (
     <main className="auth-page">
@@ -55,17 +85,20 @@ export default function LoginPage() {
           <LockKeyhole size={24} />
         </div>
 
-        <p className="small-label">Account access</p>
+        <p className="small-label">User access</p>
         <h1>Sign in to Noble Addis</h1>
-        <p>Access your buyer or admin dashboard.</p>
+        <p>Log in to check property prices, review suspicious signals, and save your results.</p>
 
-        <form onSubmit={handleLogin} className="auth-form">
+        <form action={loginAction} className="auth-form">
+          <input type="hidden" name="next" value={nextPath} />
+
           <label>
             Email
             <input
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              name="email"
+              placeholder="your@email.com"
+              required
             />
           </label>
 
@@ -73,26 +106,26 @@ export default function LoginPage() {
             Password
             <input
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              name="password"
+              placeholder="Enter your password"
+              required
             />
           </label>
 
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
-          </button>
+          <button type="submit">Sign in</button>
 
-          {message && <p className="auth-message">{message}</p>}
+          {hasError && (
+            <p className="auth-message">
+              Invalid email or password. Please try again.
+            </p>
+          )}
         </form>
 
-        <div className="auth-demo-users">
-          <p>Test accounts</p>
-          <span>Buyer: buyer@nobleaddis.com / buyer123</span>
-          <span>Super Admin: admin@nobleaddis.com / nobleaddis123</span>
-          <span>Listings Admin: listings@nobleaddis.com / listings123</span>
-          <span>Finance Admin: finance@nobleaddis.com / finance123</span>
-          <span>Verification Admin: verify@nobleaddis.com / verify123</span>
-          <span>Support Admin: support@nobleaddis.com / support123</span>
+        <div className="auth-switch">
+          <span>New to Noble Addis?</span>
+          <Link href={`/signup?next=${encodeURIComponent(nextPath)}`}>
+            Create an account
+          </Link>
         </div>
       </section>
     </main>

@@ -1,15 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
   Building2,
   FileText,
   Home,
   LifeBuoy,
+  LogIn,
+  LogOut,
   SearchCheck,
 } from "lucide-react";
+
+type CurrentUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
 
 const navItems = [
   {
@@ -21,11 +30,6 @@ const navItems = [
     label: "Check listing",
     href: "/evaluate",
     icon: SearchCheck,
-  },
-  {
-    label: "Market view",
-    href: "/insights",
-    icon: BarChart3,
   },
   {
     label: "Saved reviews",
@@ -41,6 +45,35 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
+  const hideNavbar =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/admin");
+
+  useEffect(() => {
+    if (hideNavbar) return;
+
+    async function loadUser() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+        setUser(data.user || null);
+      } catch {
+        setUser(null);
+      }
+    }
+
+    loadUser();
+  }, [hideNavbar, pathname]);
+
+  if (hideNavbar) {
+    return null;
+  }
 
   function isActive(href: string) {
     if (href === "/") {
@@ -48,6 +81,14 @@ export default function Navbar() {
     }
 
     return pathname.startsWith(href);
+  }
+
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/";
   }
 
   return (
@@ -60,7 +101,7 @@ export default function Navbar() {
 
           <div className="site-brand-copy">
             <span className="site-brand-name">Noble Addis</span>
-            <span className="site-brand-subtitle">Addis property guide</span>
+            <span className="site-brand-subtitle">Property price review</span>
           </div>
         </Link>
 
@@ -84,9 +125,17 @@ export default function Navbar() {
           })}
         </nav>
 
-        <Link href="/evaluate" className="site-nav-action">
-          Start review
-        </Link>
+        {user ? (
+          <button onClick={handleSignOut} className="site-nav-ghost-action">
+            <LogOut size={16} />
+            Sign out
+          </button>
+        ) : (
+          <Link href="/login" className="site-nav-action">
+            <LogIn size={16} />
+            Sign in
+          </Link>
+        )}
       </div>
 
       <nav className="site-mobile-nav" aria-label="Mobile navigation">
