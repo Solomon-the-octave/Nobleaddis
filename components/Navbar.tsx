@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   FileClock,
   HelpCircle,
   Home,
@@ -116,12 +116,21 @@ export default function Navbar() {
       <div className="site-navbar-inner">
         <Link href="/" className="site-brand" aria-label="Noble Addis home">
           <div className="site-brand-mark">
-            <Building2 size={23} strokeWidth={2.4} />
+      <Image
+  src="/brand/noble-addis-icon-clean.png"
+  alt="Noble Addis logo"
+  width={76}
+  height={76}
+  priority
+  className="navbar-logo-img"
+/>
           </div>
 
           <div className="site-brand-copy">
             <span className="site-brand-name">Noble Addis</span>
-            <span className="site-brand-subtitle">Addis real estate review</span>
+            <span className="site-brand-subtitle">
+              Addis real estate review
+            </span>
           </div>
         </Link>
 

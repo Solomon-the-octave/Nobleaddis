@@ -1,10 +1,11 @@
+import HeroShowcase from "../components/HeroShowcase";
 import Link from "next/link";
 import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
   Database,
-  FileText,
+  FileClock,
   SearchCheck,
   ShieldAlert,
 } from "lucide-react";
@@ -31,8 +32,8 @@ export default function HomePage() {
             </Link>
 
             <Link href="/reports" className="clean-secondary-button">
-              <FileText size={18} />
-              View saved checks
+              <FileClock size={18} />
+              View history
             </Link>
           </div>
 
@@ -41,10 +42,12 @@ export default function HomePage() {
               <Database size={15} />
               Trained on Addis property data
             </span>
+
             <span>
               <BarChart3 size={15} />
               Price prediction
             </span>
+
             <span>
               <ShieldAlert size={15} />
               Suspicion review
@@ -52,44 +55,15 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="clean-summary-card">
-          <div className="summary-card-header">
-            <span>Sample property check</span>
-            <strong>Bole, 2-bedroom apartment</strong>
-          </div>
-
-          <div className="summary-row">
-            <span>Listed price</span>
-            <strong>ETB 1,850,000</strong>
-          </div>
-
-          <div className="summary-row">
-            <span>Estimated value</span>
-            <strong>ETB 1,851,294</strong>
-          </div>
-
-          <div className="summary-row">
-            <span>Price signal</span>
-            <strong>Within expected range</strong>
-          </div>
-
-          <div className="summary-row">
-            <span>Suspicion level</span>
-            <strong>Looks reasonable</strong>
-          </div>
-
-          <p>
-            The property looks reasonable for an initial review, but the buyer
-            should still confirm the property size, ownership documents, exact
-            location, and seller details before moving forward.
-          </p>
-        </div>
+        <HeroShowcase />
       </section>
 
       <section className="clean-section">
         <div className="clean-section-title">
           <p className="section-kicker">What it checks</p>
+
           <h2>Focused on price and suspicious listing signals</h2>
+
           <p>
             Noble Addis keeps the review simple. It focuses on the questions a
             buyer needs answered first: Does the price look fair? Does the
@@ -139,7 +113,9 @@ export default function HomePage() {
       <section className="clean-process-section">
         <div className="clean-section-title">
           <p className="section-kicker">How it works</p>
+
           <h2>A simple property review flow</h2>
+
           <p>
             The platform is designed to support quick decision-making before a
             buyer spends time or money on a property.

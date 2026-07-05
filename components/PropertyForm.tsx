@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
+  MapPin,
   SearchCheck,
   ShieldAlert,
 } from "lucide-react";
@@ -12,6 +13,8 @@ import { formatMoney } from "../lib/prediction";
 
 type FormState = {
   location: string;
+  addressOption: string;
+  customAddress: string;
   propertyType: string;
   listedPriceUsd: string;
   sizeSqm: string;
@@ -39,8 +42,45 @@ type ReviewResult = {
   modelSource?: string;
 };
 
+const ADDIS_LOCATIONS = [
+  "Bole",
+  "CMC",
+  "Ayat",
+  "Summit",
+  "Gerji",
+  "Megenagna",
+  "Piassa",
+  "Saris",
+  "Kality",
+];
+
+const ADDRESS_OPTIONS: Record<string, string[]> = {
+  Bole: [
+    "Bole Medhanialem",
+    "Edna Mall, Bole",
+    "Bole Atlas",
+    "Bole Rwanda",
+    "Bole Airport area",
+  ],
+  CMC: ["CMC Michael", "CMC Road", "CMC Square", "Civil Service area"],
+  Ayat: ["Ayat Roundabout", "Ayat Real Estate", "Ayat Square", "Tafo Road"],
+  Summit: ["Summit Condominium", "Summit 72", "Summit Safari", "Figa area"],
+  Gerji: ["Gerji Mebrat Hail", "Gerji Imperial", "Gerji Condominium"],
+  Megenagna: [
+    "Megenagna Square",
+    "Zefmesh Grand Mall",
+    "24 area",
+    "Lem Hotel area",
+  ],
+  Piassa: ["Piassa Square", "Arada", "Churchill Road", "Taitu Hotel area"],
+  Saris: ["Saris Abo", "Saris Addisu Sefer", "Saris Total", "Gotera area"],
+  Kality: ["Kality Total", "Kality Industrial area", "Akaki Kality", "Tulu Dimtu"],
+};
+
 const initialForm: FormState = {
   location: "Bole",
+  addressOption: "Bole Medhanialem",
+  customAddress: "",
   propertyType: "Apartment",
   listedPriceUsd: "1850000",
   sizeSqm: "95",
@@ -64,7 +104,7 @@ function cleanSignal(value?: string) {
 function getRiskDisplay(riskLevel?: string) {
   if (riskLevel === "suspicious") {
     return {
-      label: "Suspicious listing",
+      label: "High caution",
       className: "danger",
       icon: ShieldAlert,
       note: "This listing needs strong verification before contacting the seller or making payment.",
@@ -76,7 +116,7 @@ function getRiskDisplay(riskLevel?: string) {
       label: "Needs review",
       className: "warning",
       icon: AlertTriangle,
-      note: "This listing may still be valid, but the buyer should verify the price, documents, and seller details.",
+      note: "This listing may still be valid, but the buyer should verify the price, documents, exact location, and seller details.",
     };
   }
 
@@ -94,6 +134,22 @@ export default function PropertyForm() {
   const [message, setMessage] = useState("");
   const [isChecking, setIsChecking] = useState(false);
 
+  const addressOptions = ADDRESS_OPTIONS[form.location] || [];
+
+  const selectedAddress =
+    form.addressOption === "custom"
+      ? form.customAddress
+      : form.addressOption || form.location;
+
+  const mapQuery = useMemo(() => {
+    const address = selectedAddress || form.location || "Addis Ababa";
+    return `${address}, ${form.location}, Addis Ababa, Ethiopia`;
+  }, [selectedAddress, form.location]);
+
+  const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(
+    mapQuery
+  )}&z=15&output=embed`;
+
   function updateField(field: keyof FormState, value: string) {
     setForm((current) => ({
       ...current,
@@ -101,7 +157,18 @@ export default function PropertyForm() {
     }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function updateLocation(value: string) {
+    const firstAddress = ADDRESS_OPTIONS[value]?.[0] || "";
+
+    setForm((current) => ({
+      ...current,
+      location: value,
+      addressOption: firstAddress,
+      customAddress: "",
+    }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setIsChecking(true);
@@ -110,6 +177,12 @@ export default function PropertyForm() {
 
     const listedPrice = Number(form.listedPriceUsd);
     const sizeSqm = Number(form.sizeSqm);
+
+    if (!form.location) {
+      setMessage("Please select a location.");
+      setIsChecking(false);
+      return;
+    }
 
     if (!listedPrice || listedPrice <= 0) {
       setMessage("Please enter a valid listed price.");
@@ -124,13 +197,15 @@ export default function PropertyForm() {
     }
 
     try {
-      const response = await fetch("/api/evaluate", {
+      const evaluateResponse = await fetch("/api/evaluate", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           location: form.location,
+          address: selectedAddress,
           propertyType: form.propertyType,
           listedPriceUsd: listedPrice,
           sizeSqm,
@@ -143,16 +218,85 @@ export default function PropertyForm() {
         }),
       });
 
-      const data = await response.json();
+      const data = await evaluateResponse.json();
 
-      if (!response.ok) {
+      if (!evaluateResponse.ok) {
         setMessage(data.message || "Unable to review this property.");
         setIsChecking(false);
         return;
       }
 
       setResult(data);
-    } catch {
+
+      const saveResponse = await fetch("/api/reports", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          location: form.location,
+          address: selectedAddress,
+          propertyType: form.propertyType,
+
+          listedPriceUsd: listedPrice,
+          sizeSqm,
+          bedrooms: Number(form.bedrooms) || 0,
+          bathrooms: Number(form.bathrooms) || 0,
+          amenitiesCount: Number(form.amenitiesCount) || 0,
+          completenessScore: form.description.length > 60 ? 0.85 : 0.6,
+          description: form.description,
+
+          estimatedValue: Number(data.estimatedValue || 0),
+          negotiationLow: Number(data.negotiationLow || 0),
+          negotiationHigh: Number(data.negotiationHigh || 0),
+          priceSignal: data.priceSignal || "within-range",
+          priceGapPercent: Number(data.priceGapPercent || 0),
+
+          riskLevel: data.riskLevel || "normal",
+          riskScore: Number(data.riskScore || 0),
+
+          opportunitySignal:
+            data.opportunitySignal ||
+            (data.riskLevel === "medium-risk"
+              ? "Review carefully"
+              : "Proceed with verification"),
+
+          opportunityNote:
+            data.opportunityNote ||
+            "Review listing details, ownership documents, seller identity, and exact location before moving forward.",
+
+          explanation:
+            data.explanation ||
+            "This assessment is based on the submitted property details and the trained Noble Addis model.",
+
+          pricePerSqm: Number(
+            data.pricePerSqm || Math.round(listedPrice / sizeSqm)
+          ),
+          nearbyAveragePrice: Number(data.nearbyAveragePrice || 0),
+          nearbyAveragePricePerSqm: Number(
+            data.nearbyAveragePricePerSqm || 0
+          ),
+          modelSource:
+            data.modelSource ||
+            "Trained Noble Addis price and listing risk models.",
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const errorText = await saveResponse.text();
+        console.error("Failed to save report:", errorText);
+
+        setMessage(
+          "The property was checked, but it was not saved to History. Please sign in again and try."
+        );
+
+        return;
+      }
+
+      setMessage("Property checked and saved to History.");
+    } catch (error) {
+      console.error("Property review error:", error);
       setMessage("Unable to review this property. Please try again.");
     } finally {
       setIsChecking(false);
@@ -181,8 +325,8 @@ export default function PropertyForm() {
         </div>
       </div>
 
-      <div className="simple-evaluate-grid">
-        <form onSubmit={handleSubmit} className="rental-form-panel">
+      <div className="simple-evaluate-grid fixed-evaluate-grid">
+        <form onSubmit={handleSubmit} className="rental-form-panel fixed-form-card">
           <div className="form-panel-header">
             <div>
               <p className="section-kicker">Listing details</p>
@@ -192,17 +336,25 @@ export default function PropertyForm() {
                 and suspicious listing signals.
               </span>
             </div>
+
             <SearchCheck size={28} />
           </div>
 
           <div className="input-grid">
             <label>
               Location
-              <input
+              <select
                 value={form.location}
-                onChange={(event) => updateField("location", event.target.value)}
-                placeholder="Bole"
-              />
+                onChange={(event) => updateLocation(event.target.value)}
+                required
+              >
+                <option value="">Select location</option>
+                {ADDIS_LOCATIONS.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
@@ -221,6 +373,36 @@ export default function PropertyForm() {
                 <option>Warehouse</option>
               </select>
             </label>
+
+            <label>
+              Nearby address / landmark
+              <select
+                value={form.addressOption}
+                onChange={(event) =>
+                  updateField("addressOption", event.target.value)
+                }
+              >
+                {addressOptions.map((address) => (
+                  <option key={address} value={address}>
+                    {address}
+                  </option>
+                ))}
+                <option value="custom">Enter custom address</option>
+              </select>
+            </label>
+
+            {form.addressOption === "custom" && (
+              <label>
+                Custom address
+                <input
+                  value={form.customAddress}
+                  onChange={(event) =>
+                    updateField("customAddress", event.target.value)
+                  }
+                  placeholder="Example: Near Edna Mall, Bole"
+                />
+              </label>
+            )}
 
             <label>
               Listed price
@@ -258,7 +440,9 @@ export default function PropertyForm() {
               <input
                 type="number"
                 value={form.bathrooms}
-                onChange={(event) => updateField("bathrooms", event.target.value)}
+                onChange={(event) =>
+                  updateField("bathrooms", event.target.value)
+                }
               />
             </label>
 
@@ -278,7 +462,9 @@ export default function PropertyForm() {
             Short listing description
             <textarea
               value={form.description}
-              onChange={(event) => updateField("description", event.target.value)}
+              onChange={(event) =>
+                updateField("description", event.target.value)
+              }
               placeholder="Briefly describe the property..."
             />
           </label>
@@ -297,94 +483,140 @@ export default function PropertyForm() {
             )}
           </button>
 
-          {message && <div className="review-message error">{message}</div>}
+          {message && (
+            <div
+              className={
+                message.includes("saved") && !message.includes("not saved")
+                  ? "review-message success"
+                  : "review-message error"
+              }
+            >
+              {message}
+            </div>
+          )}
         </form>
 
-        <aside className="property-report-panel simple-result-panel">
-          {!result ? (
-            <div className="simple-empty-result">
-              <SearchCheck size={34} />
-              <h3>Review result will appear here</h3>
-              <p>
-                The result will show the estimated property value, price signal,
-                and suspicion level.
-              </p>
+        <aside className="fixed-side-panel">
+          <div className="fixed-map-card">
+            <div className="fixed-map-header">
+              <div>
+                <p className="section-kicker">Location preview</p>
+                <h3>{selectedAddress || "Select an address"}</h3>
+                <p>
+                  The map gives an approximate view of the selected area or
+                  landmark in Addis Ababa.
+                </p>
+              </div>
+
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  mapQuery
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="map-open-link"
+              >
+                <MapPin size={16} />
+                Open map
+              </a>
             </div>
-          ) : (
-            <>
-              <div className="report-header">
-                <div>
-                  <h2>Property review result</h2>
-                  <span>
-                    Based on the submitted details and the trained Noble Addis
-                    model.
+
+            <iframe
+              title="Selected property location map"
+              src={mapUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+
+          <div className="property-report-panel simple-result-panel fixed-result-card">
+            {!result ? (
+              <div className="simple-empty-result fixed-empty-result">
+                <SearchCheck size={34} />
+                <h3>Review result will appear here</h3>
+                <p>
+                  After checking the listing, the result will show estimated
+                  property value, price signal, and suspicion level.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="report-header">
+                  <div>
+                    <h2>Property review result</h2>
+                    <span>
+                      Based on the submitted details and the trained Noble Addis
+                      model.
+                    </span>
+                  </div>
+
+                  <span className={`report-status ${riskDisplay.className}`}>
+                    {riskDisplay.label}
                   </span>
                 </div>
 
-                <span className={`report-status ${riskDisplay.className}`}>
-                  {riskDisplay.label}
-                </span>
-              </div>
+                <div className="report-metrics-grid simple-metrics-grid">
+                  <div className="report-metric-card primary">
+                    <small>Estimated fair value</small>
+                    <strong>
+                      {formatMoney(Number(result.estimatedValue || 0))}
+                    </strong>
+                    <p>
+                      Suggested fair value based on the trained property price
+                      model.
+                    </p>
+                  </div>
 
-              <div className="report-metrics-grid simple-metrics-grid">
-                <div className="report-metric-card primary">
-                  <small>Estimated fair value</small>
-                  <strong>{formatMoney(Number(result.estimatedValue || 0))}</strong>
-                  <p>
-                    Suggested fair value based on the trained property price
-                    model.
-                  </p>
+                  <div className="report-metric-card">
+                    <small>Listed price</small>
+                    <strong>{formatMoney(Number(form.listedPriceUsd))}</strong>
+                    <p>Price entered from the property listing.</p>
+                  </div>
+
+                  <div className="report-metric-card">
+                    <small>Price signal</small>
+                    <strong>{cleanSignal(result.priceSignal)}</strong>
+                    <p>
+                      Difference:{" "}
+                      {typeof result.priceGapPercent === "number"
+                        ? `${result.priceGapPercent}%`
+                        : "Not available"}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="report-metric-card">
-                  <small>Listed price</small>
-                  <strong>{formatMoney(Number(form.listedPriceUsd))}</strong>
-                  <p>Price entered from the property listing.</p>
+                <div className={`simple-risk-box ${riskDisplay.className}`}>
+                  <RiskIcon size={24} />
+                  <div>
+                    <h3>{riskDisplay.label}</h3>
+                    <p>{riskDisplay.note}</p>
+                  </div>
                 </div>
 
-                <div className="report-metric-card">
-                  <small>Price signal</small>
-                  <strong>{cleanSignal(result.priceSignal)}</strong>
-                  <p>
-                    Difference:{" "}
-                    {typeof result.priceGapPercent === "number"
-                      ? `${result.priceGapPercent}%`
-                      : "Not available"}
-                  </p>
-                </div>
-              </div>
+                <div className="report-card simple-guidance-card">
+                  <div className="report-card-title">
+                    <h3>Buyer guidance</h3>
+                  </div>
 
-              <div className={`simple-risk-box ${riskDisplay.className}`}>
-                <RiskIcon size={24} />
-                <div>
-                  <h3>{riskDisplay.label}</h3>
-                  <p>{riskDisplay.note}</p>
-                </div>
-              </div>
-
-              <div className="report-card simple-guidance-card">
-                <div className="report-card-title">
-                  <h3>Buyer guidance</h3>
+                  <ul className="risk-factor-list">
+                    {(result.riskFactors || [
+                      "Confirm the exact location and ownership documents.",
+                      "Compare the price with similar properties in the same area.",
+                      "Verify the seller or agent before making any payment.",
+                    ]).map((factor) => (
+                      <li key={factor}>{factor}</li>
+                    ))}
+                  </ul>
                 </div>
 
-                <ul className="risk-factor-list">
-                  {(result.riskFactors || [
-                    "Confirm the exact location and ownership documents.",
-                    "Compare the price with similar properties in the same area.",
-                    "Verify the seller or agent before making any payment.",
-                  ]).map((factor) => (
-                    <li key={factor}>{factor}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <p className="model-source-note">
-                Model source:{" "}
-                {result.modelSource ||
-                  "Trained Noble Addis price and listing risk models."}
-              </p>
-            </>
-          )}
+                <p className="model-source-note">
+                  Model source:{" "}
+                  {result.modelSource ||
+                    "Trained Noble Addis price and listing risk models."}
+                </p>
+              </>
+            )}
+          </div>
         </aside>
       </div>
     </section>

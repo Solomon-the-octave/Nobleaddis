@@ -29,8 +29,20 @@ export async function GET() {
   try {
     const user = await getCurrentUser();
 
+    if (!user) {
+      return NextResponse.json(
+        {
+          reports: [],
+          message: "You must be signed in to view your history.",
+        },
+        { status: 401 }
+      );
+    }
+
     const reports = await prisma.evaluationReport.findMany({
-      where: user?.role === "BUYER" ? { userId: user.id } : undefined,
+      where: {
+        userId: user.id,
+      },
       include: {
         listing: true,
         user: {
@@ -54,7 +66,7 @@ export async function GET() {
     return NextResponse.json(
       {
         reports: [],
-        message: "Noble Addis could not fetch saved reports.",
+        message: "Noble Addis could not fetch saved history.",
       },
       { status: 500 }
     );
@@ -64,6 +76,17 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You must be signed in to save this property check.",
+        },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const listedPriceUsd = safeNumber(body.listedPriceUsd);
@@ -72,7 +95,7 @@ export async function POST(request: Request) {
 
     const report = await prisma.evaluationReport.create({
       data: {
-        userId: user?.id ?? null,
+        userId: user.id,
         listingId: listingId && listingId > 0 ? listingId : null,
 
         location: safeString(body.location, "Addis Ababa"),
@@ -91,6 +114,7 @@ export async function POST(request: Request) {
         priceSignal: safeString(body.priceSignal, "within-range"),
         priceGapPercent: safeNumber(body.priceGapPercent),
         riskLevel: safeString(body.riskLevel, "normal"),
+
         opportunitySignal: safeString(
           body.opportunitySignal,
           "Review details"
@@ -103,15 +127,28 @@ export async function POST(request: Request) {
           body.explanation,
           "This assessment is based on available listing fields."
         ),
+
         pricePerSqm: safeNumber(
           body.pricePerSqm,
           sizeSqm > 0 ? Math.round(listedPriceUsd / sizeSqm) : 0
         ),
         nearbyAveragePrice: safeNumber(body.nearbyAveragePrice),
         nearbyAveragePricePerSqm: safeNumber(body.nearbyAveragePricePerSqm),
+
         modelSource: body.modelSource
           ? safeString(body.modelSource)
           : undefined,
+      },
+      include: {
+        listing: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -128,7 +165,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Noble Addis could not save this report.",
+        message: "Noble Addis could not save this property check.",
       },
       { status: 500 }
     );
