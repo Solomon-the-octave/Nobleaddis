@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Building2,
-  FileText,
+  FileClock,
+  HelpCircle,
   Home,
-  LifeBuoy,
   LogIn,
   LogOut,
   SearchCheck,
@@ -15,7 +15,7 @@ import {
 
 type CurrentUser = {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
   role: string;
 };
@@ -32,14 +32,14 @@ const navItems = [
     icon: SearchCheck,
   },
   {
-    label: "Saved reviews",
+    label: "History",
     href: "/reports",
-    icon: FileText,
+    icon: FileClock,
   },
   {
     label: "Help",
     href: "/help",
-    icon: LifeBuoy,
+    icon: HelpCircle,
   },
 ];
 
@@ -55,20 +55,37 @@ export default function Navbar() {
   useEffect(() => {
     if (hideNavbar) return;
 
+    let isMounted = true;
+
     async function loadUser() {
       try {
         const response = await fetch("/api/auth/me", {
           cache: "no-store",
+          credentials: "include",
         });
 
+        if (!response.ok) {
+          if (isMounted) setUser(null);
+          return;
+        }
+
         const data = await response.json();
-        setUser(data.user || null);
+
+        if (isMounted) {
+          setUser(data.user || null);
+        }
       } catch {
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+        }
       }
     }
 
     loadUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, [hideNavbar, pathname]);
 
   if (hideNavbar) {
@@ -84,11 +101,14 @@ export default function Navbar() {
   }
 
   async function handleSignOut() {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-
-    window.location.href = "/";
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      window.location.href = "/";
+    }
   }
 
   return (
@@ -96,12 +116,12 @@ export default function Navbar() {
       <div className="site-navbar-inner">
         <Link href="/" className="site-brand" aria-label="Noble Addis home">
           <div className="site-brand-mark">
-            <Building2 size={22} strokeWidth={2.4} />
+            <Building2 size={23} strokeWidth={2.4} />
           </div>
 
           <div className="site-brand-copy">
             <span className="site-brand-name">Noble Addis</span>
-            <span className="site-brand-subtitle">Property price review</span>
+            <span className="site-brand-subtitle">Addis real estate review</span>
           </div>
         </Link>
 
@@ -126,14 +146,18 @@ export default function Navbar() {
         </nav>
 
         {user ? (
-          <button onClick={handleSignOut} className="site-nav-ghost-action">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="site-nav-ghost-action"
+          >
             <LogOut size={16} />
-            Sign out
+            <span>Sign out</span>
           </button>
         ) : (
           <Link href="/login" className="site-nav-action">
             <LogIn size={16} />
-            Sign in
+            <span>Sign in</span>
           </Link>
         )}
       </div>
