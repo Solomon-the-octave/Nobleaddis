@@ -14,10 +14,7 @@ https://nobleaddis.vercel.app
 **GitHub Repository:**  
 https://github.com/Solomon-the-octave/Nobleaddis
 
-**Demo Video:**  
-https://drive.google.com/file/d/12gAV8YA6IBqlWE_FarrfHLgEdLgh9__S/view?usp=drive_link
-
-**Final:** 
+**Demo Video:** 
 https://drive.google.com/file/d/1865GgrnsUpS6wBWd7npJTK4GMLSa-hyK/view?usp=drive_link
 
 ---
@@ -495,6 +492,16 @@ The price model achieved an R² score of about 0.745, which is reasonable for an
 One important result of the project is that the machine learning model was not left only inside a notebook. It was connected to a working deployed product through a FastAPI model API and used inside the user workflow. This makes the project more practical because users can interact with the model through a real interface.
 
 ---
+### Hardware and Software Testing
+
+| Environment | What Was Tested | Result |
+|---|---|---|
+| MacBook / Chrome browser | Full desktop user and admin flow | Passed |
+| iPhone / Safari browser | Mobile layout, navigation, and readability | Passed |
+| Mobile browser through shared link | Public link access and responsive UI | Passed |
+| Vercel production environment | Live deployed web application | Passed |
+| Render model API | Model API response and prediction availability | Passed |
+| Supabase database | User history, reports, and support data storage | Passed |
 
 ## Deployment Plan and Execution
 
@@ -534,6 +541,26 @@ Examples of code organization include:
 This structure makes the project easier to maintain and extend in future versions.
 
 ---
+
+## Discussion
+
+The milestones were important because each one turned the project from a model idea into a working product. The first milestone was preparing the dataset and training the machine learning models. This was important because the platform needed a reliable way to estimate property value and identify unusual listing patterns.
+
+The next milestone was connecting the model to a real application through a FastAPI model API. This made the machine learning work more practical because the model could be used through the web platform instead of remaining only inside a notebook.
+
+Another important milestone was building the user interface. The property review form, result cards, negotiation range, map preview, and saved history helped make the model outputs understandable for users. The admin dashboard was also important because it showed how the platform owner could monitor activity, review checks, and follow up on support requests.
+
+The final milestone was deployment. Deploying the platform on Vercel, the model API on Render, and the database on Supabase showed that the project can run as a real online system. This made the final result stronger because it could be tested outside the local development environment.
+
+Overall, the results had a positive impact on the project objectives. The platform now demonstrates how machine learning can support safer and clearer early-stage property review for buyers in Addis Ababa.
+
+## Recommendations
+
+For users and the wider community, Noble Addis should be used as an early decision-support tool, not as a final property valuation or legal verification system. Buyers can use it to compare prices, identify listings that need caution, and prepare better questions before contacting agents or sellers.
+
+Users should still verify property ownership documents, seller identity, exact location, building condition, and payment terms before making any financial decision. A high-caution result should be treated as a reason to investigate further, not as a direct accusation of fraud.
+
+For future development, the platform should collect more verified property data, improve document verification, add verified agent accounts, support Amharic language options, and retrain the models with stronger real estate market data. This would make the platform more reliable and more useful for buyers, agents, and real estate stakeholders.
 
 ## Ethical Note
 
@@ -575,6 +602,31 @@ Future versions of Noble Addis could include:
 - Continuous model retraining with better verified data
 
 ---
+## Testing Screenshots and Evidence
+
+Testing screenshots are included in the repository under:
+
+```text
+public/screenshotsfinal/
+```
+
+The screenshots show evidence of the product working across the main user flow, admin flow, different property input values, mobile view, dark/light mode, and deployed environment.
+
+The testing evidence includes:
+
+- Landing page
+- Property review/check listing page
+- Prediction result with normal property data
+- Prediction result with suspicious or high-caution property data
+- Map/location preview
+- Saved history page
+- Help/support request page
+- Admin dashboard
+- Admin listings, checks, and support pages
+- Mobile phone view
+- Dark and light mode view
+- Vercel production deployment
+- Render model API response
 
 ## Final Demo Summary
 
