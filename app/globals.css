@@ -9728,3 +9728,86 @@ html[data-theme="dark"] .site-footer .site-brand-logo {
     color: #94a3b8 !important;
   }
 }
+/* =========================================================
+   HELP PAGE MOBILE DARK MODE FIX
+   Fixes invisible title and spacing on phones
+========================================================= */
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .help-page {
+    background: #070f0c !important;
+    color: #f8fbf8 !important;
+    padding-top: 34px !important;
+  }
+
+  html[data-theme="dark"] .help-page h1,
+  html[data-theme="dark"] .help-page h2,
+  html[data-theme="dark"] .help-page h3,
+  html[data-theme="dark"] .help-page .help-hero h1,
+  html[data-theme="dark"] .help-page .help-hero-title,
+  html[data-theme="dark"] .help-page [class*="hero"] h1,
+  html[data-theme="dark"] .help-page [class*="Hero"] h1 {
+    color: #ffffff !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="dark"] .help-page p,
+  html[data-theme="dark"] .help-page .help-hero p,
+  html[data-theme="dark"] .help-page [class*="hero"] p,
+  html[data-theme="dark"] .help-page [class*="Hero"] p {
+    color: #d4e0da !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="dark"] .help-page .small-label,
+  html[data-theme="dark"] .help-page .section-kicker,
+  html[data-theme="dark"] .help-page [class*="label"],
+  html[data-theme="dark"] .help-page [class*="kicker"] {
+    color: #8ee3b4 !important;
+    opacity: 1 !important;
+  }
+
+  /* Make the Help hero cleaner on mobile */
+  .help-page h1 {
+    font-size: clamp(44px, 12vw, 58px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: -0.075em !important;
+    margin-bottom: 22px !important;
+  }
+
+  .help-page p {
+    font-size: 17px !important;
+    line-height: 1.55 !important;
+  }
+
+  .help-page section:first-child,
+  .help-page [class*="hero"],
+  .help-page [class*="Hero"] {
+    padding: 28px 22px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Buyer reminder card polish */
+  html[data-theme="dark"] .help-page article,
+  html[data-theme="dark"] .help-page [class*="card"],
+  html[data-theme="dark"] .help-page [class*="Card"] {
+    background: #0d1a15 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #f8fbf8 !important;
+  }
+
+  html[data-theme="dark"] .help-page article h2,
+  html[data-theme="dark"] .help-page article h3,
+  html[data-theme="dark"] .help-page [class*="card"] h2,
+  html[data-theme="dark"] .help-page [class*="card"] h3 {
+    color: #ffffff !important;
+  }
+
+  html[data-theme="dark"] .help-page article p,
+  html[data-theme="dark"] .help-page [class*="card"] p {
+    color: #d4e0da !important;
+  }
+}
