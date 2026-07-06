@@ -6,8 +6,10 @@ import Footer from "../components/Footer";
 
 export const metadata: Metadata = {
   title: "Noble Addis",
-  description:
-    "A real estate platform helping buyers review property listings in Addis Ababa.",
+  description: "Addis real estate review platform",
+  icons: {
+    icon: "/brand/noble-addis-icon-clean.png",
+  },
 };
 
 export const viewport: Viewport = {

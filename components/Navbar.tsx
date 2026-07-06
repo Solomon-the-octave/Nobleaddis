@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import ThemeToggle from "./ThemeToggle";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  FileClock,
+  FileText,
   HelpCircle,
   Home,
   LogIn,
@@ -15,7 +15,7 @@ import {
 
 type CurrentUser = {
   id: number;
-  name: string | null;
+  name: string;
   email: string;
   role: string;
 };
@@ -34,7 +34,7 @@ const navItems = [
   {
     label: "History",
     href: "/reports",
-    icon: FileClock,
+    icon: FileText,
   },
   {
     label: "Help",
@@ -55,37 +55,20 @@ export default function Navbar() {
   useEffect(() => {
     if (hideNavbar) return;
 
-    let isMounted = true;
-
     async function loadUser() {
       try {
         const response = await fetch("/api/auth/me", {
           cache: "no-store",
-          credentials: "include",
         });
 
-        if (!response.ok) {
-          if (isMounted) setUser(null);
-          return;
-        }
-
         const data = await response.json();
-
-        if (isMounted) {
-          setUser(data.user || null);
-        }
+        setUser(data.user || null);
       } catch {
-        if (isMounted) {
-          setUser(null);
-        }
+        setUser(null);
       }
     }
 
     loadUser();
-
-    return () => {
-      isMounted = false;
-    };
   }, [hideNavbar, pathname]);
 
   if (hideNavbar) {
@@ -101,29 +84,19 @@ export default function Navbar() {
   }
 
   async function handleSignOut() {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } finally {
-      window.location.href = "/";
-    }
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/";
   }
 
   return (
     <header className="site-navbar">
       <div className="site-navbar-inner">
         <Link href="/" className="site-brand" aria-label="Noble Addis home">
-          <div className="site-brand-mark">
-      <Image
-  src="/brand/noble-addis-icon-clean.png"
-  alt="Noble Addis logo"
-  width={76}
-  height={76}
-  priority
-  className="navbar-logo-img"
-/>
+          <div className="site-brand-logo">
+            <img src="/brand/noble-addis-icon-clean.png" alt="Noble Addis logo" />
           </div>
 
           <div className="site-brand-copy">
@@ -144,7 +117,9 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={
-                  active ? "site-nav-link site-nav-link-active" : "site-nav-link"
+                  active
+                    ? "site-nav-link site-nav-link-active"
+                    : "site-nav-link"
                 }
               >
                 <Icon size={16} strokeWidth={2.2} />
@@ -154,21 +129,25 @@ export default function Navbar() {
           })}
         </nav>
 
-        {user ? (
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="site-nav-ghost-action"
-          >
-            <LogOut size={16} />
-            <span>Sign out</span>
-          </button>
-        ) : (
-          <Link href="/login" className="site-nav-action">
-            <LogIn size={16} />
-            <span>Sign in</span>
-          </Link>
-        )}
+        <div className="site-nav-actions">
+          <ThemeToggle />
+
+          {user ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="site-nav-ghost-action"
+            >
+              <LogOut size={16} />
+              Sign out
+            </button>
+          ) : (
+            <Link href="/login" className="site-nav-action">
+              <LogIn size={16} />
+              Sign in
+            </Link>
+          )}
+        </div>
       </div>
 
       <nav className="site-mobile-nav" aria-label="Mobile navigation">

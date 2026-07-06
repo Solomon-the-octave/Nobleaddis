@@ -1,54 +1,19 @@
+import Link from "next/link";
 import {
   AlertTriangle,
-  ClipboardList,
+  Building2,
+  CheckCircle2,
   FileText,
   HelpCircle,
-  Home,
-  LifeBuoy,
-  LogOut,
-  PlusCircle,
-  Trash2,
+  ShieldAlert,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+
 import { requireAdmin } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
-import { formatMoney } from "../../lib/prediction";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function cleanText(value?: string | null) {
-  if (!value) return "Not provided";
-
-  return value
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function getRiskLabel(riskLevel?: string | null) {
-  if (!riskLevel) return "Standard";
-  if (riskLevel === "suspicious") return "High review";
-  if (riskLevel === "medium-risk") return "Needs review";
-  return "Standard";
-}
-
-function formatDate(value?: Date | string | null) {
-  if (!value) return "Not available";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
 
 async function safeCount(query: Promise<number>) {
   try {
@@ -58,19 +23,21 @@ async function safeCount(query: Promise<number>) {
   }
 }
 
-async function getHelpRequestsSafely() {
-  try {
-    const requests = await prisma.helpRequest.findMany({
-      take: 6,
-    });
+function getRiskLabel(riskLevel?: string | null) {
+  const risk = String(riskLevel ?? "").toLowerCase();
 
-    return requests as any[];
-  } catch {
-    return [];
+  if (risk.includes("suspicious") || risk.includes("high")) {
+    return "High caution";
   }
+
+  if (risk.includes("medium") || risk.includes("review")) {
+    return "Needs review";
+  }
+
+  return "Looks reasonable";
 }
 
-export default async function AdminPage() {
+export default async function AdminOverviewPage() {
   const admin = await requireAdmin();
 
   const usersCount = await safeCount(prisma.user.count());
@@ -78,347 +45,121 @@ export default async function AdminPage() {
   const reportsCount = await safeCount(prisma.evaluationReport.count());
   const helpRequestsCount = await safeCount(prisma.helpRequest.count());
 
-  const listings = (await prisma.propertyListing.findMany({
-    take: 12,
-  })) as any[];
-
-  const flaggedListings = listings.filter(
-    (listing) =>
-      listing.riskLabel === "suspicious" ||
-      listing.riskLabel === "medium-risk" ||
-      listing.status === "flagged" ||
-      listing.status === "needs-review"
-  );
-
-  const flaggedChecks = await prisma.evaluationReport.findMany({
-    where: {
-      OR: [
-        {
-          riskLevel: "suspicious",
-        },
-        {
-          riskLevel: "medium-risk",
-        },
-        {
-          priceSignal: "overpriced",
-        },
-      ],
-    },
+  const recentChecks = await prisma.evaluationReport.findMany({
     orderBy: {
       createdAt: "desc",
     },
-    take: 6,
+    take: 12,
     select: {
       id: true,
-      location: true,
-      propertyType: true,
-      listedPriceUsd: true,
       riskLevel: true,
       priceSignal: true,
-      createdAt: true,
     },
   });
 
-  const recentHelpRequests = await getHelpRequestsSafely();
+  const flaggedChecks = recentChecks.filter((check) => {
+    const risk = String(check.riskLevel ?? "").toLowerCase();
+    const signal = String(check.priceSignal ?? "").toLowerCase();
+
+    return (
+      risk.includes("suspicious") ||
+      risk.includes("high") ||
+      risk.includes("medium") ||
+      risk.includes("review") ||
+      signal.includes("overpriced") ||
+      signal.includes("underpriced")
+    );
+  });
+
+  const reasonableChecks = recentChecks.filter(
+    (check) => getRiskLabel(check.riskLevel) === "Looks reasonable"
+  );
 
   return (
-    <main className="clean-page">
-      <section className="admin-hero-panel">
-  <div className="admin-hero-copy">
-    <p className="small-label">Admin dashboard</p>
+    <main className="premium-admin-page">
+      <section className="premium-admin-hero">
+        <div>
+          <p className="admin-kicker">Admin dashboard</p>
+          <h1>Manage Noble Addis</h1>
+          <p>
+            Monitor users, listings, saved property checks, suspicious listing
+            signals, and support requests from one workspace.
+          </p>
 
-    <h1>Manage Noble Addis</h1>
+          <div className="admin-welcome-note">
+            Logged in as {admin?.email || "admin user"}
+          </div>
+        </div>
+      </section>
 
-    <p>
-      Review property checks, monitor suspicious listing activity, manage
-      platform listings, and respond to user support requests.
-    </p>
-  </div>
-
-  <div className="admin-hero-actions">
-    <Link href="/" className="admin-hero-button">
-      <Home size={17} />
-      Public site
-    </Link>
-
-    <Link href="/help" className="admin-hero-button">
-      <LifeBuoy size={17} />
-      Help page
-    </Link>
-
-    <form action="/api/auth/logout" method="post">
-      <button className="admin-hero-button admin-logout-button" type="submit">
-        <LogOut size={17} />
-        Sign out
-      </button>
-    </form>
-  </div>
-</section>
-
-      <section className="admin-summary-grid">
-        <div className="admin-summary-card">
-          <Users size={22} />
+      <section className="admin-metric-grid">
+        <article className="admin-metric-card">
+          <Users size={25} />
           <span>Total users</span>
           <strong>{usersCount}</strong>
-        </div>
+          <p>Registered users on the platform.</p>
+        </article>
 
-        <div className="admin-summary-card">
-          <ClipboardList size={22} />
+        <article className="admin-metric-card">
+          <Building2 size={25} />
           <span>Total listings</span>
           <strong>{listingsCount}</strong>
-        </div>
+          <p>Current property records.</p>
+        </article>
 
-        <div className="admin-summary-card">
-          <FileText size={22} />
+        <article className="admin-metric-card">
+          <FileText size={25} />
           <span>Saved checks</span>
           <strong>{reportsCount}</strong>
-        </div>
+          <p>Property reviews saved by users.</p>
+        </article>
 
-        <div className="admin-summary-card">
-          <HelpCircle size={22} />
+        <article className="admin-metric-card admin-metric-warning">
+          <ShieldAlert size={25} />
+          <span>Flagged checks</span>
+          <strong>{flaggedChecks.length}</strong>
+          <p>Overpriced, underpriced, or suspicious checks.</p>
+        </article>
+
+        <article className="admin-metric-card admin-metric-success">
+          <CheckCircle2 size={25} />
+          <span>Reasonable checks</span>
+          <strong>{reasonableChecks.length}</strong>
+          <p>Recent checks that look reasonable.</p>
+        </article>
+
+        <article className="admin-metric-card">
+          <HelpCircle size={25} />
           <span>Help requests</span>
           <strong>{helpRequestsCount}</strong>
-        </div>
+          <p>User questions and support messages.</p>
+        </article>
       </section>
 
-      <section className="admin-table-card admin-extra-section">
-        <div className="admin-table-header">
+      <section className="admin-quick-grid">
+        <Link href="/admin/listings" className="admin-quick-card">
+          <Building2 size={28} />
           <div>
-            <p className="section-kicker">Listing management</p>
-            <h2>Add a new listing</h2>
+            <h2>Manage listings</h2>
+            <p>Add new property records and remove outdated listings.</p>
           </div>
-          <PlusCircle size={24} />
-        </div>
+        </Link>
 
-        <form
-          action="/api/admin/listings/create"
-          method="post"
-          className="admin-create-form"
-        >
-          <label>
-            Listing title
-            <input
-              name="title"
-              placeholder="Example: 2-bedroom apartment in Bole"
-              required
-            />
-          </label>
-
-          <label>
-            Location
-            <input name="location" placeholder="Bole" required />
-          </label>
-
-          <label>
-            Property type
-            <select name="propertyType" defaultValue="Apartment">
-              <option>Apartment</option>
-              <option>House</option>
-              <option>Condo</option>
-              <option>Villa</option>
-              <option>Commercial</option>
-              <option>Warehouse</option>
-            </select>
-          </label>
-
-          <label>
-            Listed price
-            <input
-              name="listedPriceUsd"
-              type="number"
-              placeholder="1850000"
-              required
-            />
-          </label>
-
-          <label>
-            Size in sqm
-            <input name="sizeSqm" type="number" placeholder="95" required />
-          </label>
-
-          <label>
-            Bedrooms
-            <input name="bedrooms" type="number" placeholder="2" />
-          </label>
-
-          <label>
-            Bathrooms
-            <input name="bathrooms" type="number" placeholder="2" />
-          </label>
-
-          <label className="admin-full-input">
-            Description
-            <textarea
-              name="description"
-              placeholder="Brief property description..."
-            />
-          </label>
-
-          <button type="submit" className="clean-primary-button">
-            <PlusCircle size={18} />
-            Add listing
-          </button>
-        </form>
-      </section>
-
-      <section className="admin-table-card admin-extra-section">
-        <div className="admin-table-header">
+        <Link href="/admin/checks" className="admin-quick-card">
+          <AlertTriangle size={28} />
           <div>
-            <p className="section-kicker">Verification queue</p>
-            <h2>Flagged listings to review</h2>
+            <h2>Review property checks</h2>
+            <p>See flagged, underpriced, overpriced, and recent checks.</p>
           </div>
-          <AlertTriangle size={24} />
-        </div>
+        </Link>
 
-        {flaggedListings.length === 0 ? (
-          <div className="empty-state">
-            No flagged listings are currently in the listing database.
-          </div>
-        ) : (
-          <div className="admin-table">
-            <div className="admin-table-row admin-table-head">
-              <span>Listing</span>
-              <span>Location</span>
-              <span>Risk</span>
-              <span>Price</span>
-              <span>Action</span>
-            </div>
-
-            {flaggedListings.map((listing) => (
-              <div className="admin-table-row" key={listing.id}>
-                <span>{listing.title || listing.propertyType}</span>
-                <span>{listing.location || listing.area}</span>
-                <span>{getRiskLabel(listing.riskLabel)}</span>
-                <span>{formatMoney(Number(listing.listedPriceUsd || 0))}</span>
-                <span>
-                  <form action="/api/admin/listings/delete" method="post">
-                    <input type="hidden" name="id" value={String(listing.id)} />
-                    <button className="admin-danger-button" type="submit">
-                      <Trash2 size={15} />
-                      Remove
-                    </button>
-                  </form>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="admin-table-card admin-extra-section">
-        <div className="admin-table-header">
+        <Link href="/admin/support" className="admin-quick-card">
+          <HelpCircle size={28} />
           <div>
-            <p className="section-kicker">Buyer activity</p>
-            <h2>Flagged property checks</h2>
+            <h2>User support</h2>
+            <p>Read questions and support requests submitted by users.</p>
           </div>
-        </div>
-
-        {flaggedChecks.length === 0 ? (
-          <div className="empty-state">
-            No suspicious or overpriced property checks yet.
-          </div>
-        ) : (
-          <div className="admin-table">
-            <div className="admin-table-row admin-table-head">
-              <span>Property</span>
-              <span>Location</span>
-              <span>Risk</span>
-              <span>Signal</span>
-              <span>Price</span>
-            </div>
-
-            {flaggedChecks.map((report) => (
-              <div className="admin-table-row" key={report.id}>
-                <span>{report.propertyType}</span>
-                <span>{report.location}</span>
-                <span>{getRiskLabel(report.riskLevel)}</span>
-                <span>{cleanText(report.priceSignal || "within range")}</span>
-                <span>{formatMoney(Number(report.listedPriceUsd))}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="admin-table-card admin-extra-section">
-        <div className="admin-table-header">
-          <div>
-            <p className="section-kicker">All listings</p>
-            <h2>Current listing records</h2>
-          </div>
-        </div>
-
-        {listings.length === 0 ? (
-          <div className="empty-state">No listings have been added yet.</div>
-        ) : (
-          <div className="admin-table">
-            <div className="admin-table-row admin-table-head">
-              <span>Listing</span>
-              <span>Location</span>
-              <span>Type</span>
-              <span>Price</span>
-              <span>Action</span>
-            </div>
-
-            {listings.map((listing) => (
-              <div className="admin-table-row" key={listing.id}>
-                <span>{listing.title || "Untitled listing"}</span>
-                <span>{listing.location || listing.area}</span>
-                <span>{listing.propertyType || "Property"}</span>
-                <span>{formatMoney(Number(listing.listedPriceUsd || 0))}</span>
-                <span>
-                  <form action="/api/admin/listings/delete" method="post">
-                    <input type="hidden" name="id" value={String(listing.id)} />
-                    <button className="admin-danger-button" type="submit">
-                      <Trash2 size={15} />
-                      Remove
-                    </button>
-                  </form>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="admin-table-card admin-extra-section">
-        <div className="admin-table-header">
-          <div>
-            <p className="section-kicker">Support</p>
-            <h2>User questions and support requests</h2>
-          </div>
-        </div>
-
-        {recentHelpRequests.length === 0 ? (
-          <div className="empty-state">No support requests yet.</div>
-        ) : (
-          <div className="admin-table">
-            <div className="admin-table-row admin-table-head">
-              <span>Requester</span>
-              <span>Email</span>
-              <span>Type</span>
-              <span>Status</span>
-              <span>Date</span>
-            </div>
-
-            {recentHelpRequests.map((request) => (
-              <div className="admin-table-row" key={request.id}>
-                <span>{request.name || "Not provided"}</span>
-                <span>{request.email || "Not provided"}</span>
-                <span>{cleanText(String(request.type || "support"))}</span>
-                <span>{cleanText(String(request.status || "open"))}</span>
-                <span>
-                  {formatDate(
-                    request.createdAt ||
-                      request.submittedAt ||
-                      request.updatedAt ||
-                      null
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        </Link>
       </section>
     </main>
   );
