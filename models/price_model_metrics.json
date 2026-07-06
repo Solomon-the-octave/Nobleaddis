@@ -1,25 +1,25 @@
 {
-  "rows_used": 83696,
-  "training_rows": 66956,
-  "testing_rows": 16740,
-  "features": [
-    "size_sqm",
-    "bedrooms",
-    "bathrooms",
-    "image_count",
-    "latitude",
-    "longitude",
-    "floor",
-    "description_length",
-    "completeness_score",
+  "model_purpose": "Property price prediction",
+  "best_model": "Small Random Forest Regressor",
+  "mae": 3294083.245538649,
+  "rmse": 6631323.562178037,
+  "r2_score": 0.7450322744373453,
+  "target_column": "price",
+  "features_used": [
     "property_type",
     "listing_type",
-    "place_name",
+    "size_sqm",
+    "latitude",
+    "longitude",
+    "bathrooms",
+    "bedrooms",
+    "image_count",
+    "description_length",
+    "has_image",
+    "completeness_score",
     "condition",
     "furnishing"
   ],
-  "mae": 889867.1844229777,
-  "mae_percent_of_median_price": 41.03276461505955,
-  "r2_score": 0.739749260156517,
-  "median_actual_price": 2168674.69879518
+  "rows_used": 85400,
+  "deployment_note": "Small Random Forest selected to keep the deployed model stable and lightweight."
 }

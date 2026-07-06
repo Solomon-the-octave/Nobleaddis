@@ -92,7 +92,7 @@ const initialForm: FormState = {
 };
 
 function cleanSignal(value?: string) {
-  if (!value) return "Within expected range";
+  if (!value) return "Within range";
 
   return value
     .replaceAll("-", " ")
@@ -107,7 +107,7 @@ function getRiskDisplay(riskLevel?: string) {
       label: "High caution",
       className: "danger",
       icon: ShieldAlert,
-      note: "This listing needs strong verification before contacting the seller or making payment.",
+      note: "Verify the seller, documents, location, and property condition before moving forward.",
     };
   }
 
@@ -116,7 +116,7 @@ function getRiskDisplay(riskLevel?: string) {
       label: "Needs review",
       className: "warning",
       icon: AlertTriangle,
-      note: "This listing may still be valid, but the buyer should verify the price, documents, exact location, and seller details.",
+      note: "Review the price, documents, seller details, and exact location carefully.",
     };
   }
 
@@ -124,7 +124,7 @@ function getRiskDisplay(riskLevel?: string) {
     label: "Looks reasonable",
     className: "success",
     icon: CheckCircle2,
-    note: "This listing looks reasonable for an initial review, but the buyer should still confirm the details.",
+    note: "The listing looks reasonable, but the buyer should still confirm the key details.",
   };
 }
 
@@ -264,19 +264,17 @@ export default function PropertyForm() {
 
           opportunityNote:
             data.opportunityNote ||
-            "Review listing details, ownership documents, seller identity, and exact location before moving forward.",
+            "Review listing details before moving forward.",
 
           explanation:
             data.explanation ||
-            "This assessment is based on the submitted property details and the trained Noble Addis model.",
+            "This assessment is based on the submitted property details.",
 
           pricePerSqm: Number(
             data.pricePerSqm || Math.round(listedPrice / sizeSqm)
           ),
           nearbyAveragePrice: Number(data.nearbyAveragePrice || 0),
-          nearbyAveragePricePerSqm: Number(
-            data.nearbyAveragePricePerSqm || 0
-          ),
+          nearbyAveragePricePerSqm: Number(data.nearbyAveragePricePerSqm || 0),
           modelSource:
             data.modelSource ||
             "Trained Noble Addis price and listing risk models.",
@@ -287,14 +285,12 @@ export default function PropertyForm() {
         const errorText = await saveResponse.text();
         console.error("Failed to save report:", errorText);
 
-        setMessage(
-          "The property was checked, but it was not saved to History. Please sign in again and try."
-        );
+        setMessage("Checked, but not saved to History. Please sign in again.");
 
         return;
       }
 
-      setMessage("Property checked and saved to History.");
+      setMessage("Checked and saved to History.");
     } catch (error) {
       console.error("Property review error:", error);
       setMessage("Unable to review this property. Please try again.");
@@ -311,30 +307,25 @@ export default function PropertyForm() {
       <div className="property-review-hero simple-evaluate-hero">
         <div>
           <p className="small-label">Property review</p>
-          <h2>Check a property price and risk level</h2>
-          <p>
-            Enter the main listing details to estimate a fair value and identify
-            whether the property looks reasonable, needs review, or appears
-            suspicious.
-          </p>
+          <h2>Check property details</h2>
+          <p>Review price, location, and listing signals before moving forward.</p>
         </div>
 
         <div className="property-review-hero-stat">
-          <span>Model data</span>
+          <span>Dataset</span>
           <strong>85,400 records</strong>
         </div>
       </div>
 
       <div className="simple-evaluate-grid fixed-evaluate-grid">
-        <form onSubmit={handleSubmit} className="rental-form-panel fixed-form-card">
+        <form
+          onSubmit={handleSubmit}
+          className="rental-form-panel fixed-form-card"
+        >
           <div className="form-panel-header">
             <div>
               <p className="section-kicker">Listing details</p>
               <h3>Property information</h3>
-              <span>
-                Keep the input simple. The review focuses on price prediction
-                and suspicious listing signals.
-              </span>
             </div>
 
             <SearchCheck size={28} />
@@ -473,7 +464,7 @@ export default function PropertyForm() {
             {isChecking ? (
               <>
                 <Loader2 className="spin-icon" size={18} />
-                Checking property...
+                Checking...
               </>
             ) : (
               <>
@@ -502,10 +493,6 @@ export default function PropertyForm() {
               <div>
                 <p className="section-kicker">Location preview</p>
                 <h3>{selectedAddress || "Select an address"}</h3>
-                <p>
-                  The map gives an approximate view of the selected area or
-                  landmark in Addis Ababa.
-                </p>
               </div>
 
               <a
@@ -534,20 +521,12 @@ export default function PropertyForm() {
               <div className="simple-empty-result fixed-empty-result">
                 <SearchCheck size={34} />
                 <h3>Review result will appear here</h3>
-                <p>
-                  After checking the listing, the result will show estimated
-                  property value, price signal, and suspicion level.
-                </p>
               </div>
             ) : (
               <>
                 <div className="report-header">
                   <div>
                     <h2>Property review result</h2>
-                    <span>
-                      Based on the submitted details and the trained Noble Addis
-                      model.
-                    </span>
                   </div>
 
                   <span className={`report-status ${riskDisplay.className}`}>
@@ -557,20 +536,15 @@ export default function PropertyForm() {
 
                 <div className="report-metrics-grid simple-metrics-grid">
                   <div className="report-metric-card primary">
-                    <small>Estimated fair value</small>
+                    <small>Estimated value</small>
                     <strong>
                       {formatMoney(Number(result.estimatedValue || 0))}
                     </strong>
-                    <p>
-                      Suggested fair value based on the trained property price
-                      model.
-                    </p>
                   </div>
 
                   <div className="report-metric-card">
                     <small>Listed price</small>
                     <strong>{formatMoney(Number(form.listedPriceUsd))}</strong>
-                    <p>Price entered from the property listing.</p>
                   </div>
 
                   <div className="report-metric-card">
@@ -600,20 +574,14 @@ export default function PropertyForm() {
 
                   <ul className="risk-factor-list">
                     {(result.riskFactors || [
-                      "Confirm the exact location and ownership documents.",
-                      "Compare the price with similar properties in the same area.",
-                      "Verify the seller or agent before making any payment.",
+                      "Confirm ownership documents.",
+                      "Verify the seller or agent.",
+                      "Check the exact location before payment.",
                     ]).map((factor) => (
                       <li key={factor}>{factor}</li>
                     ))}
                   </ul>
                 </div>
-
-                <p className="model-source-note">
-                  Model source:{" "}
-                  {result.modelSource ||
-                    "Trained Noble Addis price and listing risk models."}
-                </p>
               </>
             )}
           </div>

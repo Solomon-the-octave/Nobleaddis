@@ -1,78 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
-  AlertCircle,
-  CheckCircle,
-  FileWarning,
+  CheckCircle2,
   HelpCircle,
   Mail,
-  MessageCircle,
-  SearchCheck,
+  MapPin,
+  MessageSquare,
+  Send,
   ShieldCheck,
 } from "lucide-react";
 
-type HelpFormState = {
+type HelpForm = {
   name: string;
   email: string;
-  phone: string;
-  issueType: string;
-  location: string;
-  listingName: string;
+  category: string;
+  subject: string;
   message: string;
 };
 
-const defaultForm: HelpFormState = {
+const initialForm: HelpForm = {
   name: "",
   email: "",
-  phone: "",
-  issueType: "REVIEW_EXPLANATION",
-  location: "",
-  listingName: "",
+  category: "Property check",
+  subject: "",
   message: "",
 };
 
-const issueTypes = [
+const helpTopics = [
   {
-    label: "Understand a review",
-    value: "REVIEW_EXPLANATION",
-    icon: HelpCircle,
-  },
-  {
-    label: "Report suspicious listing",
-    value: "SUSPICIOUS_LISTING",
-    icon: FileWarning,
-  },
-  {
-    label: "Verify a property",
-    value: "PROPERTY_VERIFICATION",
     icon: ShieldCheck,
+    title: "Property check",
+    text: "Questions about price signals, risk levels, or buyer guidance.",
   },
   {
-    label: "Report wrong information",
-    value: "WRONG_INFORMATION",
-    icon: SearchCheck,
+    icon: MapPin,
+    title: "Location issue",
+    text: "Problems with selected areas, landmarks, or map preview.",
+  },
+  {
+    icon: MessageSquare,
+    title: "History support",
+    text: "Help with saved property checks or account history.",
   },
 ];
 
 export default function HelpPage() {
-  const [form, setForm] = useState<HelpFormState>(defaultForm);
+  const [form, setForm] = useState<HelpForm>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
-  const [isError, setIsError] = useState(false);
+  const [statusType, setStatusType] = useState<"success" | "error" | "">("");
 
-  function updateField<K extends keyof HelpFormState>(
-    key: K,
-    value: HelpFormState[K]
-  ) {
+  function updateField(field: keyof HelpForm, value: string) {
     setForm((current) => ({
       ...current,
-      [key]: value,
+      [field]: value,
     }));
-
-    setStatusMessage("");
-    setIsError(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -80,99 +63,120 @@ export default function HelpPage() {
 
     setIsSubmitting(true);
     setStatusMessage("");
-    setIsError(false);
+    setStatusType("");
+
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      setStatusType("error");
+      setStatusMessage("Please add your name, email, and message.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/help", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          category: form.category,
+          subject: form.subject || form.category,
+          message: form.message,
+        }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.error || "Could not submit request.");
+        setStatusType("error");
+        setStatusMessage(
+          data?.message || "Your request could not be sent. Please try again."
+        );
+        return;
       }
 
-      setStatusMessage(
-        `Request received. Your reference number is #${data.helpRequestId}.`
-      );
-
-      setForm(defaultForm);
+      setStatusType("success");
+      setStatusMessage("Your request has been sent.");
+      setForm(initialForm);
     } catch (error) {
-      setIsError(true);
-
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not submit your request."
-      );
+      console.error("Help request error:", error);
+      setStatusType("error");
+      setStatusMessage("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <main className="support-page">
-      <section className="support-hero">
+    <main className="help-page">
+      <section className="help-hero">
         <div>
-          <p className="support-label">Noble Addis Support</p>
-          <h1>Get a second check before you move forward.</h1>
+          <p className="small-label">Help center</p>
+          <h1>Get support with Noble Addis.</h1>
           <p>
-            Use support when a listing feels unclear, the review result needs
-            explaining, or you want help knowing what to verify before calling,
-            visiting, negotiating, or paying.
+            Send a question about property checks, map locations, saved history,
+            or suspicious listing signals.
           </p>
         </div>
 
-        <div className="support-response-card">
-          <Mail size={24} />
-          <span>Support request</span>
-          <strong>We review the issue and guide your next step.</strong>
+        <div className="help-hero-card">
+          <HelpCircle size={30} />
+          <h3>Buyer reminder</h3>
           <p>
-            Best for suspicious listings, unclear price signals, missing
-            property details, and verification questions.
+            Noble Addis gives an early review. Always verify documents, seller
+            identity, exact location, and property condition before payment.
           </p>
         </div>
       </section>
 
-      <section className="support-issue-strip">
-        {issueTypes.map((issue) => {
-          const Icon = issue.icon;
-          const active = form.issueType === issue.value;
+      <section className="help-content-grid">
+        <div className="help-left-column">
+          <div className="help-topic-grid">
+            {helpTopics.map((topic) => {
+              const Icon = topic.icon;
 
-          return (
-            <button
-              key={issue.value}
-              type="button"
-              className={
-                active ? "support-issue-card active" : "support-issue-card"
-              }
-              onClick={() => updateField("issueType", issue.value)}
-            >
-              <Icon size={20} />
-              <span>{issue.label}</span>
-            </button>
-          );
-        })}
-      </section>
-
-      <section className="support-layout">
-        <form className="support-form" onSubmit={handleSubmit}>
-          <div className="support-form-heading">
-            <MessageCircle size={24} />
-            <div>
-              <h2>Send a request</h2>
-              <p>Share the listing and what you need help with.</p>
-            </div>
+              return (
+                <article key={topic.title} className="help-topic-card">
+                  <div>
+                    <Icon size={24} />
+                  </div>
+                  <h3>{topic.title}</h3>
+                  <p>{topic.text}</p>
+                </article>
+              );
+            })}
           </div>
 
-          <div className="support-input-grid">
+          <div className="help-note-card">
+            <div className="help-note-icon">
+              <Mail size={22} />
+            </div>
+
+            <div>
+              <h3>Support requests</h3>
+              <p>
+                Submitted messages are saved so the admin can review and follow
+                up where needed.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="help-form-card">
+          <div className="help-form-header">
+            <div>
+              <p className="section-kicker">Contact support</p>
+              <h2>Send a request</h2>
+            </div>
+            <Send size={24} />
+          </div>
+
+          <div className="help-form-grid">
             <label>
-              Full name
+              Name
               <input
                 value={form.name}
                 onChange={(event) => updateField("name", event.target.value)}
@@ -181,7 +185,7 @@ export default function HelpPage() {
             </label>
 
             <label>
-              Email address
+              Email
               <input
                 type="email"
                 value={form.email}
@@ -191,103 +195,64 @@ export default function HelpPage() {
             </label>
 
             <label>
-              Phone number
-              <input
-                value={form.phone}
-                onChange={(event) => updateField("phone", event.target.value)}
-                placeholder="Optional"
-              />
+              Category
+              <select
+                value={form.category}
+                onChange={(event) =>
+                  updateField("category", event.target.value)
+                }
+              >
+                <option>Property check</option>
+                <option>Map or location</option>
+                <option>History</option>
+                <option>Account</option>
+                <option>Other</option>
+              </select>
             </label>
 
             <label>
-              Area / location
+              Subject
               <input
-                value={form.location}
+                value={form.subject}
                 onChange={(event) =>
-                  updateField("location", event.target.value)
+                  updateField("subject", event.target.value)
                 }
-                placeholder="Example: Bole"
+                placeholder="Short subject"
               />
             </label>
           </div>
-
-          <label>
-            Listing name
-            <input
-              value={form.listingName}
-              onChange={(event) =>
-                updateField("listingName", event.target.value)
-              }
-              placeholder="Example: 2-bedroom apartment in Bole"
-            />
-          </label>
 
           <label>
             Message
             <textarea
               value={form.message}
               onChange={(event) => updateField("message", event.target.value)}
-              placeholder="Explain what looks unclear or what you want verified..."
-              rows={6}
+              placeholder="Write your message..."
             />
           </label>
 
-          <button
-            type="submit"
-            className="support-submit-button"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Submitting request..." : "Submit support request"}
+          <button type="submit" className="help-submit-button">
+            {isSubmitting ? (
+              "Sending..."
+            ) : (
+              <>
+                <Send size={18} />
+                Send request
+              </>
+            )}
           </button>
 
           {statusMessage && (
-            <div className={isError ? "support-status error" : "support-status"}>
-              {isError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+            <div className={`help-status ${statusType}`}>
+              {statusType === "success" ? (
+                <CheckCircle2 size={18} />
+              ) : (
+                <HelpCircle size={18} />
+              )}
               <span>{statusMessage}</span>
             </div>
           )}
         </form>
-
-        <aside className="support-guide">
-          <div className="support-guide-card dark">
-            <ShieldCheck size={24} />
-            <h3>Before you pay</h3>
-            <p>
-              Always confirm the exact property location, ownership documents,
-              seller identity, and viewing arrangements before making any
-              payment.
-            </p>
-          </div>
-
-          <div className="support-guide-card">
-            <h3>What happens next?</h3>
-
-            <div className="support-steps">
-              <div>
-                <span>1</span>
-                <p>Your request is saved in Noble Addis.</p>
-              </div>
-
-              <div>
-                <span>2</span>
-                <p>The issue is reviewed based on the listing details.</p>
-              </div>
-
-              <div>
-                <span>3</span>
-                <p>You get a clearer next step before moving forward.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="support-note-card">
-            <strong>Good request example</strong>
-            <p>
-              “The Bole apartment result says high caution. The price looks low
-              and the listing has few details. What should I verify first?”
-            </p>
-          </div>
-        </aside>
       </section>
     </main>
   );
