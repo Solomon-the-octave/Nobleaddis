@@ -1,4 +1,5 @@
-import { LockKeyhole } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../lib/prisma";
@@ -21,7 +22,7 @@ async function adminLoginAction(formData: FormData) {
     .trim()
     .toLowerCase();
 
-  const password = String(formData.get("password") || "").replace(/\s/g, "");
+  const password = String(formData.get("password") || "").trim();
 
   if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
     redirect("/admin/login?error=invalid");
@@ -33,13 +34,13 @@ async function adminLoginAction(formData: FormData) {
     },
     update: {
       name: "Noble Addis Admin",
-      role: "ADMIN" as any,
+      role: "ADMIN",
       passwordHash: ADMIN_PASSWORD,
     },
     create: {
       name: "Noble Addis Admin",
       email: ADMIN_EMAIL,
-      role: "ADMIN" as any,
+      role: "ADMIN",
       passwordHash: ADMIN_PASSWORD,
     },
     select: {
@@ -77,8 +78,13 @@ export default async function AdminLoginPage({
         </div>
 
         <p className="small-label">Admin access</p>
+
         <h1>Sign in to Noble Addis</h1>
-        <p>Access the platform dashboard and review activity.</p>
+
+        <p className="auth-subtitle">
+          Access the admin workspace to review listings, saved checks, and
+          support requests.
+        </p>
 
         <form action={adminLoginAction} className="auth-form">
           <label>
@@ -86,7 +92,8 @@ export default async function AdminLoginPage({
             <input
               type="email"
               name="email"
-              defaultValue="admin@nobleaddis.com"
+              defaultValue={ADMIN_EMAIL}
+              autoComplete="email"
               required
             />
           </label>
@@ -97,18 +104,24 @@ export default async function AdminLoginPage({
               type="password"
               name="password"
               placeholder="Enter admin password"
+              autoComplete="current-password"
               required
             />
           </label>
 
-          <button type="submit">Sign in</button>
-
           {hasError && (
-            <p className="auth-message">
+            <div className="auth-message auth-message-error">
               Invalid admin email or password. Please try again.
-            </p>
+            </div>
           )}
+
+          <button type="submit">Sign in</button>
         </form>
+
+        <Link href="/" className="auth-back-link">
+          <ArrowLeft size={16} />
+          Back to public site
+        </Link>
       </section>
     </main>
   );
