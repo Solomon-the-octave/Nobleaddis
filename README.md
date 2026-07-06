@@ -17,7 +17,7 @@ https://github.com/Solomon-the-octave/Nobleaddis
 **Demo Video:**  
 https://drive.google.com/file/d/12gAV8YA6IBqlWE_FarrfHLgEdLgh9__S/view?usp=drive_link
 
-**Final: https://drive.google.com/file/d/1865GgrnsUpS6wBWd7npJTK4GMLSa-hyK/view?usp=drive_link
+**Final:** https://drive.google.com/file/d/1865GgrnsUpS6wBWd7npJTK4GMLSa-hyK/view?usp=drive_link
 ---
 
 ## Project Overview
