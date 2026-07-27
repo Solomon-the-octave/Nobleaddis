@@ -8,6 +8,13 @@ export const dynamic = "force-dynamic";
 const MODEL_API_URL =
   process.env.MODEL_API_URL || "http://127.0.0.1:8000/predict";
 
+// Render's free tier spins the model API down after inactivity, and a cold
+// start can take 30-60+ seconds. Without a bound, a sleeping model API makes
+// every check hang instead of falling back to the local review. Bail out
+// well before Vercel's own function timeout so the fallback always gets a
+// chance to run.
+const MODEL_API_TIMEOUT_MS = 6000;
+
 function toNumber(value: unknown, fallback = 0) {
   const numberValue = Number(value);
 
@@ -20,52 +27,6 @@ function toNumber(value: unknown, fallback = 0) {
 
 function cleanText(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function getAreaName(location: string) {
-  return location.split(",")[0]?.trim() || "Unknown";
-}
-
-function getLocationCoordinates(location: string) {
-  const cleanLocation = location.toLowerCase();
-
-  if (cleanLocation.includes("bole")) {
-    return { latitude: 8.9806, longitude: 38.7578 };
-  }
-
-  if (cleanLocation.includes("cmc")) {
-    return { latitude: 9.0206, longitude: 38.8462 };
-  }
-
-  if (cleanLocation.includes("ayat")) {
-    return { latitude: 9.0487, longitude: 38.8903 };
-  }
-
-  if (cleanLocation.includes("summit")) {
-    return { latitude: 9.0564, longitude: 38.8725 };
-  }
-
-  if (cleanLocation.includes("gerji")) {
-    return { latitude: 9.0128, longitude: 38.8354 };
-  }
-
-  if (cleanLocation.includes("saris")) {
-    return { latitude: 8.9242, longitude: 38.7469 };
-  }
-
-  if (cleanLocation.includes("kality")) {
-    return { latitude: 8.9096, longitude: 38.7737 };
-  }
-
-  if (cleanLocation.includes("megenagna")) {
-    return { latitude: 9.0201, longitude: 38.8028 };
-  }
-
-  if (cleanLocation.includes("piassa")) {
-    return { latitude: 9.0373, longitude: 38.7524 };
-  }
-
-  return { latitude: 9.03, longitude: 38.74 };
 }
 
 function validateInput(input: PropertyInput) {
@@ -107,39 +68,44 @@ function validateInput(input: PropertyInput) {
 }
 
 async function getModelPrediction(input: PropertyInput) {
-  const coordinates = getLocationCoordinates(input.location);
-  const descriptionLength = input.description.trim().length;
-  const placeName = getAreaName(input.location);
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    MODEL_API_TIMEOUT_MS
+  );
 
-  const response = await fetch(MODEL_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      listed_price: input.listedPriceUsd,
-      size_sqm: input.sizeSqm,
-      bedrooms: input.bedrooms,
-      bathrooms: input.bathrooms,
-      image_count: 1,
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      floor: 0,
-      description_length: descriptionLength,
-      completeness_score: input.completenessScore,
-      property_type: input.propertyType.toLowerCase(),
-      listing_type: "for sale",
-      place_name: placeName,
-      condition: "Unknown",
-      furnishing: "Unknown",
-    }),
-  });
+  try {
+    // Field names here must match model_api's PropertyInput schema exactly
+    // (model_api/main.py) — it resolves location coordinates itself, so this
+    // payload only needs to carry the raw user input, not a duplicated
+    // location/coordinates lookup.
+    const response = await fetch(MODEL_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        location: input.location,
+        propertyType: input.propertyType,
+        listedPriceUsd: input.listedPriceUsd,
+        sizeSqm: input.sizeSqm,
+        bedrooms: input.bedrooms,
+        bathrooms: input.bathrooms,
+        amenitiesCount: input.amenitiesCount,
+        descriptionLength: input.description.trim().length,
+        completenessScore: input.completenessScore,
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error("Model API could not complete the prediction.");
+    if (!response.ok) {
+      throw new Error("Model API could not complete the prediction.");
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 export async function POST(request: Request) {

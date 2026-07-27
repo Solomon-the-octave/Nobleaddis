@@ -10,6 +10,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { formatMoney } from "../lib/prediction";
+import RatingWidget from "./RatingWidget";
 
 type FormState = {
   location: string;
@@ -582,6 +583,8 @@ export default function PropertyForm() {
                     ))}
                   </ul>
                 </div>
+
+                <RatingWidget />
               </>
             )}
           </div>

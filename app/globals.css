@@ -9124,9 +9124,12 @@ html[data-theme="dark"] .site-footer .site-brand-logo {
   }
 
   body {
-    background: #070f0c !important;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  html[data-theme="dark"] body {
+    background: #070f0c !important;
   }
 
   /* Reduce heavy effects on mobile for smoother scrolling */
@@ -9354,7 +9357,7 @@ html[data-theme="dark"] .site-footer .site-brand-logo {
     min-height: 58px !important;
     justify-content: center !important;
     font-size: 16px !important;
-    border-radius: 999px !important;
+    border-radius: var(--radius-sm) !important;
   }
 
   .clean-hero-points,
@@ -10133,4 +10136,774 @@ html[data-theme="dark"] .auth-message-error {
   background: rgba(239, 68, 68, 0.12);
   color: #fecaca;
   border-color: rgba(239, 68, 68, 0.24);
+}
+
+/* =========================================================
+   PROFESSIONAL UI REFRESH — SHARED SHELL
+   Design tokens, navbar, footer, admin nav, buttons, cards.
+   Appended last on purpose — CSS resolves ties by source
+   order, so this section wins over the older patch layers
+   above without needing to touch them.
+========================================================= */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.1);
+
+  --shadow: var(--shadow-md);
+  --line: rgba(15, 23, 42, 0.1);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Navbar ---------- */
+.site-navbar {
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+}
+
+.site-brand-mark {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.site-nav-links {
+  border-radius: var(--radius-md);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.site-nav-link {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.site-nav-link-active {
+  box-shadow: var(--shadow-sm);
+}
+
+.site-nav-action,
+.site-nav-ghost-action {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.site-mobile-nav {
+  border-radius: var(--radius-lg);
+}
+
+.site-mobile-link {
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  box-shadow: none;
+}
+
+.footer-logo {
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Admin nav ---------- */
+.admin-top-nav {
+  box-shadow: none;
+}
+
+.admin-brand-mark {
+  border-radius: var(--radius-sm);
+}
+
+.admin-nav-links {
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.admin-nav-link {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.admin-public-link,
+.admin-signout-button,
+.admin-hero-link,
+.admin-logout-button {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+.clean-primary-button,
+.clean-secondary-button,
+.hero-primary-button,
+.hero-secondary-button {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.mini-action {
+  border-radius: var(--radius-xs);
+}
+
+/* ---------- Cards ---------- */
+.clean-feature-card,
+.clean-step-card,
+.admin-metric-card,
+.admin-summary-card,
+.admin-stat-card,
+.admin-table-card,
+.admin-quick-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.clean-process-section,
+.premium-admin-hero {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-result-preview {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card,
+.admin-login-card {
+  border-radius: var(--radius-xl);
+}
+
+.empty-state {
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Compact page headers ----------
+   Replaces the oversized landing-hero headline that was
+   repeated identically on internal/admin pages. */
+
+.admin-page-title {
+  font-size: clamp(28px, 3.4vw, 38px);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.admin-page-subtitle {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.premium-admin-hero {
+  padding: 22px 26px;
+}
+
+.premium-admin-hero h1 {
+  font-size: clamp(32px, 4vw, 42px);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.premium-admin-hero p {
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.admin-kicker {
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.clean-page-header h1 {
+  font-size: clamp(30px, 3.6vw, 40px);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.clean-page-header p {
+  font-size: 15px;
+}
+
+/* =========================================================
+   PROFESSIONAL UI REFRESH — PAGE CARDS (evaluate, history, help)
+========================================================= */
+
+/* ---------- Evaluate page ---------- */
+.property-review-hero {
+  padding: 18px 22px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.property-review-hero h2 {
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.property-review-hero p {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.property-review-hero-stat {
+  border-radius: var(--radius-md);
+}
+
+.rental-record-panel,
+.rental-form-panel {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+}
+
+.property-area-card,
+.fixed-map-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+}
+
+.report-metric-card,
+.report-card,
+.next-step-card {
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.comparison-list div,
+.risk-score-row div {
+  border-radius: var(--radius-md);
+}
+
+/* ---------- History page ---------- */
+.library-summary-card,
+.library-search-card,
+.library-note-card,
+.library-help-card,
+.library-empty-state,
+.library-report-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.library-summary-card {
+  padding: 16px;
+}
+
+.library-search-card,
+.library-note-card,
+.library-help-card {
+  padding: 16px;
+}
+
+.library-search-box {
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Help page ---------- */
+.help-hero-card {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 22px;
+}
+
+.help-topic-card,
+.help-note-card,
+.help-form-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.help-topic-card,
+.help-note-card {
+  padding: 18px;
+}
+
+.help-form-card {
+  padding: 20px;
+}
+
+.help-topic-card div,
+.help-note-icon {
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1.5px solid var(--green);
+}
+
+/* =========================================================
+   PROFESSIONAL UI REFRESH — CORPORATE DENSITY + IDENTITY
+   Smaller/tighter cards, a serif display type for major
+   headlines, and monospaced tracked labels — a distinct
+   editorial/fintech pairing instead of the generic rounded
+   SaaS-template look.
+========================================================= */
+
+:root {
+  --font-display: ui-serif, Georgia, "Iowan Old Style", "Times New Roman",
+    serif;
+  --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas,
+    monospace;
+}
+
+/* ---------- Display headlines (serif) ---------- */
+.realestate-hero-copy h1,
+.clean-page-header h1,
+.admin-page-title,
+.premium-admin-hero h1,
+.property-review-hero h2,
+.help-hero-card h3,
+.help-form-header h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.realestate-hero-copy h1 {
+  line-height: 1.05;
+}
+
+/* ---------- Tracked labels (monospace) ---------- */
+.section-kicker,
+.small-label,
+.admin-kicker,
+.help-form-header p,
+[class$="-kicker"] {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* ---------- Corporate density: shrink card padding, gaps, min-heights ---------- */
+.clean-feature-card {
+  padding: 16px;
+}
+
+.clean-feature-grid,
+.clean-step-grid {
+  gap: 12px;
+}
+
+.clean-step-card {
+  min-height: 130px;
+  padding: 16px;
+}
+
+.clean-process-section {
+  padding: 24px;
+}
+
+.admin-metric-card {
+  min-height: 128px;
+  padding: 18px;
+}
+
+.admin-metric-grid,
+.admin-summary-grid,
+.admin-stat-grid,
+.admin-quick-grid {
+  gap: 12px;
+}
+
+.admin-metric-card strong {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-summary-card,
+.admin-stat-card {
+  min-height: 104px;
+  padding: 16px;
+}
+
+.admin-summary-card strong,
+.admin-stat-card strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table-card {
+  padding: 18px;
+}
+
+.admin-quick-card {
+  min-height: 140px;
+  padding: 18px;
+}
+
+.panel-heading h3,
+.form-panel-header h3 {
+  font-size: 20px;
+}
+
+.report-metric-card strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-result-preview {
+  padding: 20px;
+}
+
+.library-summary-card strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Left accent bar on KPI/stat cards — the one recurring
+   signature element instead of a generic bordered box. */
+.admin-metric-card,
+.admin-summary-card,
+.admin-stat-card,
+.report-metric-card.primary,
+.library-summary-card {
+  position: relative;
+  border-left: 3px solid var(--green);
+}
+
+/* ---------- Form fields + auth cards ---------- */
+.rental-form-panel input,
+.rental-form-panel select,
+.rental-form-panel textarea,
+.auth-form input,
+.admin-login-form input,
+.help-form-card input,
+.help-form-card select,
+.help-form-card textarea {
+  border-radius: var(--radius-sm);
+}
+
+.rental-form-panel select {
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+}
+
+.submit-review-button,
+.auth-form button,
+.admin-login-form button {
+  border-radius: var(--radius-sm);
+  min-height: 48px;
+}
+
+.auth-card,
+.admin-login-card {
+  padding: 24px;
+}
+
+/* =========================================================
+   PROFESSIONAL UI REFRESH — DISTINCT DETAILS
+   Cuts the remaining "generic AI template" tells: gradient
+   blob backgrounds, filled icon bubbles repeated everywhere,
+   and boxed-card grids with no hierarchy. Replaces them with
+   a signature square bullet + flat, bordered treatments.
+========================================================= */
+
+/* Square bullet marker before every tracked uppercase label,
+   instead of plain gray text — a small recurring signature. */
+.section-kicker,
+.small-label,
+.admin-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-kicker::before,
+.small-label::before,
+.admin-kicker::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+}
+
+/* Extend the monospace micro-label treatment site-wide so it
+   reads as one deliberate system, not a one-off accent. */
+.report-metric-card small,
+.comparison-list small,
+.risk-score-row small,
+.admin-metric-card span,
+.admin-summary-card span,
+.admin-stat-card span,
+.library-summary-card span,
+.footer-column h4,
+.status-pill {
+  font-family: var(--font-mono);
+}
+
+/* Outlined icon chips instead of filled colour-soup bubbles */
+.auth-icon,
+.admin-login-icon {
+  background: transparent;
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  border-radius: var(--radius-xs);
+}
+
+/* ---------- Homepage "What it checks": flatten the bento grid ---------- */
+.clean-feature-card {
+  background: transparent;
+  border: none;
+  border-top: 2px solid var(--dark);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 0 0;
+}
+
+.clean-feature-card:nth-child(2n) {
+  border-top-color: var(--green);
+}
+
+/* ---------- Homepage "How it works": drop the gradient blob ---------- */
+.clean-process-section {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--line);
+  box-shadow: none;
+  border-radius: 0;
+  padding: 32px 0 0;
+}
+
+.clean-step-card {
+  background: transparent;
+  border: none;
+  border-top: 2px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 0 0;
+}
+
+.clean-step-card:nth-child(2),
+.clean-step-card:nth-child(4) {
+  transform: none;
+}
+
+.clean-step-card::after {
+  display: none;
+}
+
+.clean-step-card span {
+  border-radius: var(--radius-xs);
+}
+
+/* =========================================================
+   POLICY GATE + RATING WIDGET + ADMIN FEEDBACK
+========================================================= */
+
+.policy-page {
+  max-width: 760px;
+}
+
+.policy-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.policy-card h1 {
+  margin: 8px 0;
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--dark);
+}
+
+.policy-body {
+  margin: 26px 0;
+  display: grid;
+  gap: 16px;
+}
+
+.policy-point {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: #fbfbf8;
+}
+
+.policy-point h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+.policy-point p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.policy-form {
+  display: grid;
+  gap: 16px;
+}
+
+.policy-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.policy-checkbox input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+}
+
+/* ---------- Rating widget ---------- */
+.rating-widget {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 12px;
+}
+
+.rating-widget h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+.rating-stars {
+  display: flex;
+  gap: 6px;
+}
+
+.rating-star {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: 0.15s ease;
+}
+
+.rating-star:hover {
+  color: var(--green);
+}
+
+.rating-star-filled {
+  color: var(--green);
+}
+
+.rating-comment {
+  width: 100%;
+  min-height: 70px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+}
+
+.rating-comment:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(15, 81, 50, 0.08);
+}
+
+.rating-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rating-widget-done {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--green);
+}
+
+.rating-widget-done h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+.rating-widget-done p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---------- Admin feedback ---------- */
+.admin-feedback-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-feedback-stars {
+  color: var(--green);
+  letter-spacing: 0.1em;
+  font-size: 16px;
+}
+
+html[data-theme="dark"] .policy-card,
+html[data-theme="dark"] .rating-widget {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="dark"] .policy-point {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] .policy-card h1,
+html[data-theme="dark"] .policy-point h3,
+html[data-theme="dark"] .rating-widget h3,
+html[data-theme="dark"] .rating-widget-done h3,
+html[data-theme="dark"] .policy-checkbox {
+  color: #e5efe9 !important;
+}
+
+html[data-theme="dark"] .policy-point p,
+html[data-theme="dark"] .rating-widget-done p {
+  color: #9fb3aa !important;
+}
+
+html[data-theme="dark"] .rating-comment {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e5efe9 !important;
 }

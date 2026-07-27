@@ -524,7 +524,9 @@ function getOpportunity(
 
 export function evaluateProperty(input: PropertyInput): EvaluationResult {
   const listedPriceUsd = safeNumber(input.listedPriceUsd, 1);
-  const sizeSqm = safeNumber(input.sizeSqm, 1);
+  // sizeSqm is a divisor below, so 0 (which safeNumber's value < 0 check
+  // does not catch) must also be floored to a safe minimum.
+  const sizeSqm = Math.max(safeNumber(input.sizeSqm, 1), 1);
   const amenitiesCount = safeNumber(input.amenitiesCount, 0);
   const completenessScore = clamp(
     safeNumber(input.completenessScore, 0.5),

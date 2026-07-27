@@ -197,9 +197,10 @@ The Small Random Forest Regressor was selected because it provided a reasonable 
 The suspicious listing model reviews listing patterns and returns a caution signal.
 
 ```text
-Model: Decision Tree Classifier
+Model: Random Forest Classifier
 Purpose: Suspicious listing detection
 Output: Listing risk/caution signal
+Accuracy: Approximately 0.73
 ```
 
 The suspicious listing result does not prove fraud. It only means the listing should receive additional verification before the buyer continues.

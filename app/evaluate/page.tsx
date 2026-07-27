@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LockKeyhole, LogIn, UserPlus } from "lucide-react";
 import PropertyForm from "../../components/PropertyForm";
 import { getCurrentUser } from "../../lib/auth";
@@ -7,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function EvaluatePage() {
   const user = await getCurrentUser();
+
+  if (user && !user.policyAcceptedAt) {
+    redirect("/policy?next=/evaluate");
+  }
 
   if (!user) {
     return (

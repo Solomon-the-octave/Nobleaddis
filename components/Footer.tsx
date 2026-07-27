@@ -11,6 +11,7 @@ export default function Footer() {
   const hideFooter =
     pathname === "/login" ||
     pathname === "/signup" ||
+    pathname === "/forgot-password" ||
     pathname.startsWith("/admin");
 
   if (hideFooter) {

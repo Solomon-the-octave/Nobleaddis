@@ -6,6 +6,7 @@ import {
   FileText,
   HelpCircle,
   ShieldAlert,
+  Star,
   Users,
 } from "lucide-react";
 
@@ -44,6 +45,16 @@ export default async function AdminOverviewPage() {
   const listingsCount = await safeCount(prisma.propertyListing.count());
   const reportsCount = await safeCount(prisma.evaluationReport.count());
   const helpRequestsCount = await safeCount(prisma.helpRequest.count());
+
+  const feedbackEntries = await prisma.feedback
+    .findMany({ select: { rating: true } })
+    .catch((): { rating: number }[] => []);
+
+  const averageRating =
+    feedbackEntries.length > 0
+      ? feedbackEntries.reduce((total, item) => total + item.rating, 0) /
+        feedbackEntries.length
+      : null;
 
   const recentChecks = await prisma.evaluationReport.findMany({
     orderBy: {
@@ -134,6 +145,15 @@ export default async function AdminOverviewPage() {
           <strong>{helpRequestsCount}</strong>
           <p>User questions and support messages.</p>
         </article>
+
+        <article className="admin-metric-card">
+          <Star size={25} />
+          <span>Average rating</span>
+          <strong>
+            {averageRating !== null ? averageRating.toFixed(1) : "—"}
+          </strong>
+          <p>From {feedbackEntries.length} submitted ratings.</p>
+        </article>
       </section>
 
       <section className="admin-quick-grid">
@@ -158,6 +178,14 @@ export default async function AdminOverviewPage() {
           <div>
             <h2>User support</h2>
             <p>Read questions and support requests submitted by users.</p>
+          </div>
+        </Link>
+
+        <Link href="/admin/feedback" className="admin-quick-card">
+          <Star size={28} />
+          <div>
+            <h2>User feedback</h2>
+            <p>See how buyers rate their experience after a property check.</p>
           </div>
         </Link>
       </section>

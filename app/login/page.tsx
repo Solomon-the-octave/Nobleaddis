@@ -112,6 +112,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             />
           </label>
 
+          <Link href="/forgot-password" className="forgot-password-link">
+            Forgot password?
+          </Link>
+
           <button type="submit">Sign in</button>
 
           {hasError && (

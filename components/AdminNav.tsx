@@ -10,6 +10,7 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  Star,
 } from "lucide-react";
 
 const adminLinks = [
@@ -32,6 +33,11 @@ const adminLinks = [
     label: "Support",
     href: "/admin/support",
     icon: HelpCircle,
+  },
+  {
+    label: "Feedback",
+    href: "/admin/feedback",
+    icon: Star,
   },
 ];
 
@@ -67,8 +73,8 @@ export default function AdminNav() {
     <header className="admin-top-nav">
       <div className="admin-top-nav-inner">
         <Link href="/admin" className="admin-brand">
-          <div className="admin-brand-mark">
-            <Building2 size={22} />
+          <div className="site-brand-logo">
+            <img src="/brand/noble-addis-icon-clean.png" alt="Noble Addis logo" />
           </div>
 
           <div>

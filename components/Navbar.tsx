@@ -50,6 +50,7 @@ export default function Navbar() {
   const hideNavbar =
     pathname === "/login" ||
     pathname === "/signup" ||
+    pathname === "/forgot-password" ||
     pathname.startsWith("/admin");
 
   useEffect(() => {
