@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -73,7 +72,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    // Matches the plain-text scheme used by signup/login elsewhere in this
+    // app (see app/signup/page.tsx, app/login/page.tsx) — hashing only here
+    // would make the stored value stop matching login's plain comparison,
+    // locking the user out after every password reset.
+    const passwordHash = newPassword;
 
     await prisma.user.update({
       where: {
