@@ -10907,3 +10907,11 @@ html[data-theme="dark"] .rating-comment {
   border-color: rgba(255, 255, 255, 0.12) !important;
   color: #e5efe9 !important;
 }
+
+/* Mobile "Buyer reminder" card was losing its green gradient background
+   under 760px (a legacy mobile rule strips it), leaving white text
+   invisible against the page background. Force it back explicitly. */
+div.help-hero-card.help-hero-card {
+  background-color: #075f3a !important;
+  background-image: linear-gradient(135deg, #075f3a, #0f8a58) !important;
+}
